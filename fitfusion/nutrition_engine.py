@@ -12,16 +12,27 @@ OPENFOODFACTS_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.js
 
 
 def search_food(query: str, limit: int = 10) -> list[dict]:
+    """Matches against the English, Hebrew and Arabic names regardless of the UI language,
+    so e.g. searching "עוף" finds Chicken Breast even when the app is in English."""
     query = (query or "").strip().lower()
     if not query:
         return FOODS[:limit]
-    return [f for f in FOODS if query in f["name"].lower()][:limit]
+    matches = []
+    for f in FOODS:
+        haystack = " ".join(filter(None, [f.get("name"), f.get("name_he"), f.get("name_ar")])).lower()
+        if query in haystack:
+            matches.append(f)
+    return matches[:limit]
 
 
-def scale_to_grams(food: dict, grams: float) -> dict:
+def display_name(food: dict, language: str = "en") -> str:
+    return food.get(f"name_{language}") or food.get("name", "")
+
+
+def scale_to_grams(food: dict, grams: float, language: str = "en") -> dict:
     factor = grams / 100.0
     nutrients = {k: round(v * factor, 1) for k, v in food["per_100g"].items()}
-    nutrients["name"] = f"{food['name']} ({int(grams)}g)"
+    nutrients["name"] = f"{display_name(food, language)} ({int(grams)}g)"
     return nutrients
 
 

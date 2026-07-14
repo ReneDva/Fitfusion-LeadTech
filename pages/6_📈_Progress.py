@@ -14,7 +14,7 @@ user = require_login()
 
 st.title(f"📈 {t('progress_title')}")
 
-wc1, wc2 = st.columns([2, 1])
+wc1, wc2, wc3, wc4 = st.columns([2, 1, 2, 1])
 with wc1:
     new_weight = st.number_input(t("log_weight"), 30.0, 300.0, float(db.get_profile(user["id"])["weight_kg"] or 70), label_visibility="visible")
 with wc2:
@@ -22,6 +22,15 @@ with wc2:
     st.write("")
     if st.button(t("log_weight"), use_container_width=True, type="primary"):
         db.log_weight(user["id"], new_weight)
+        st.success(t("success_saved"))
+        st.rerun()
+with wc3:
+    new_sleep = st.number_input(t("log_sleep_hours"), 0.0, 14.0, 7.0, step=0.5, label_visibility="visible")
+with wc4:
+    st.write("")
+    st.write("")
+    if st.button(t("log_sleep"), use_container_width=True, type="primary"):
+        db.log_sleep(user["id"], new_sleep)
         st.success(t("success_saved"))
         st.rerun()
 

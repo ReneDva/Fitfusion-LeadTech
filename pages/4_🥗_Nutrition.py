@@ -15,40 +15,69 @@ st.title(f"🥗 {t('nutrition_title')}")
 if "pending_meal" not in st.session_state:
     st.session_state["pending_meal"] = None
 
-tabs = st.tabs([f"📷 {t('take_photo')}", f"📤 {t('upload_image')}", f"🔍 {t('scan_barcode')}", f"🔎 {t('search_food')}", f"🍱 {t('build_meal')}"])
+subscription = db.get_subscription(user["id"])
+is_premium = bool(subscription and subscription["plan"] == "premium")
 
-# --- Photo -----------------------------------------------------------------
+tabs = st.tabs([
+    f"📷 {t('take_photo')}", f"📤 {t('upload_image')}", f"📝 {t('describe_meal')}",
+    f"🔍 {t('scan_barcode')}", f"🔎 {t('search_food')}", f"🍱 {t('build_meal')}",
+])
+
+# --- Photo (Premium only) ---------------------------------------------------
 with tabs[0]:
-    photo = st.camera_input(t("take_photo"), label_visibility="collapsed")
-    if photo and st.button(f"🧠 {t('analyze')}", type="primary"):
-        if not ai.ai_enabled():
-            st.info(t("ai_disabled_notice"))
-        else:
-            with st.spinner(t("loading_ai")):
-                result = ai.analyze_meal_photo(photo.getvalue(), current_language())
-            if "error" in result:
-                st.error(f"Couldn't analyze this photo ({result['error']}). Try Build Meal Manually instead.")
+    if not is_premium:
+        st.info(f"✨ {t('photo_premium_notice')}")
+        st.page_link("pages/8_✨_Premium.py", label=t("premium_title"), icon="✨")
+    else:
+        photo = st.camera_input(t("take_photo"), label_visibility="collapsed")
+        if photo and st.button(f"🧠 {t('analyze')}", type="primary", key="analyze_photo_btn"):
+            if not ai.ai_enabled():
+                st.info(t("ai_disabled_notice"))
             else:
-                result["source"] = "ai_photo"
-                st.session_state["pending_meal"] = result
+                with st.spinner(t("loading_ai")):
+                    result = ai.analyze_meal_photo(photo.getvalue(), current_language())
+                if "error" in result:
+                    st.error(f"Couldn't analyze this photo ({result['error']}). Try Build Meal Manually instead.")
+                else:
+                    result["source"] = "ai_photo"
+                    st.session_state["pending_meal"] = result
 
-# --- Upload ------------------------------------------------------------------
+# --- Upload (Premium only) ----------------------------------------------------
 with tabs[1]:
-    upload = st.file_uploader(t("upload_image"), type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-    if upload and st.button(f"🧠 {t('analyze')}", type="primary"):
+    if not is_premium:
+        st.info(f"✨ {t('photo_premium_notice')}")
+        st.page_link("pages/8_✨_Premium.py", label=t("premium_title"), icon="✨")
+    else:
+        upload = st.file_uploader(t("upload_image"), type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+        if upload and st.button(f"🧠 {t('analyze')}", type="primary", key="analyze_upload_btn"):
+            if not ai.ai_enabled():
+                st.info(t("ai_disabled_notice"))
+            else:
+                with st.spinner(t("loading_ai")):
+                    result = ai.analyze_meal_photo(upload.getvalue(), current_language())
+                if "error" in result:
+                    st.error(f"Couldn't analyze this image ({result['error']}). Try Build Meal Manually instead.")
+                else:
+                    result["source"] = "ai_photo"
+                    st.session_state["pending_meal"] = result
+
+# --- Describe Meal (free, text-based) -----------------------------------------
+with tabs[2]:
+    description = st.text_area(t("describe_meal"), placeholder=t("describe_meal_placeholder"), label_visibility="collapsed")
+    if description and st.button(f"🧠 {t('analyze')}", type="primary", key="analyze_text_btn"):
         if not ai.ai_enabled():
             st.info(t("ai_disabled_notice"))
         else:
             with st.spinner(t("loading_ai")):
-                result = ai.analyze_meal_photo(upload.getvalue(), current_language())
+                result = ai.analyze_meal_text(description, current_language())
             if "error" in result:
-                st.error(f"Couldn't analyze this image ({result['error']}). Try Build Meal Manually instead.")
+                st.error(f"Couldn't analyze this description ({result['error']}). Try Build Meal Manually instead.")
             else:
-                result["source"] = "ai_photo"
+                result["source"] = "ai_text"
                 st.session_state["pending_meal"] = result
 
 # --- Barcode -------------------------------------------------------------------
-with tabs[2]:
+with tabs[3]:
     barcode = st.text_input(t("scan_barcode"), placeholder="e.g. 737628064502")
     if st.button(f"🔍 {t('look_up')}", type="primary") and barcode:
         with st.spinner("Looking up product..."):
@@ -59,27 +88,26 @@ with tabs[2]:
             st.session_state["pending_meal"] = result
 
 # --- Search ----------------------------------------------------------------
-with tabs[3]:
-    query = st.text_input(t("search_food"), placeholder="e.g. chicken, rice, banana")
+with tabs[4]:
+    query = st.text_input(t("search_food"), placeholder="e.g. chicken, rice, banana / עוף, אורז / دجاج, أرز")
     results = nut.search_food(query) if query else []
     if results:
-        chosen_name = st.selectbox(t("search_results"), [f["name"] for f in results])
+        chosen_food = st.selectbox(
+            t("search_results"), results, format_func=lambda f: nut.display_name(f, current_language())
+        )
         grams = st.slider(t("grams_label"), 10, 500, 100, step=10)
         if st.button(f"➕ {t('use_this_food')}", type="primary"):
-            food = next(f for f in results if f["name"] == chosen_name)
-            st.session_state["pending_meal"] = nut.scale_to_grams(food, grams)
+            st.session_state["pending_meal"] = nut.scale_to_grams(chosen_food, grams, current_language())
     elif query:
         st.caption(t("no_local_matches"))
 
 # --- Build Meal --------------------------------------------------------------
-with tabs[4]:
-    all_names = [f["name"] for f in nut.FOODS]
-    picked = st.multiselect(t("add_foods"), all_names)
+with tabs[5]:
+    picked = st.multiselect(t("add_foods"), nut.FOODS, format_func=lambda f: nut.display_name(f, current_language()))
     items = []
-    for name in picked:
-        food = next(f for f in nut.FOODS if f["name"] == name)
-        grams = st.slider(f"{name} ({t('g')})", 10, 500, 100, step=10, key=f"grams_{name}")
-        items.append(nut.scale_to_grams(food, grams))
+    for food in picked:
+        grams = st.slider(f"{nut.display_name(food, current_language())} ({t('g')})", 10, 500, 100, step=10, key=f"grams_{food['name']}")
+        items.append(nut.scale_to_grams(food, grams, current_language()))
     if items and st.button(f"🍱 {t('build_this_meal')}", type="primary"):
         st.session_state["pending_meal"] = nut.aggregate_meal(items)
 

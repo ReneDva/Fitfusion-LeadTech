@@ -110,6 +110,32 @@ quality_score (0-100 healthiness), notes (1 short sentence), healthier_alternati
         return {"error": str(e)}
 
 
+def analyze_meal_text(description: str, language: str = "en") -> dict:
+    """Returns nutrition dict from a free-text meal description, or an 'error' key on failure.
+    This is the non-Premium path — no image upload, just describe what you ate."""
+    client = _client()
+    if client is None:
+        return {"error": "offline"}
+
+    from google.genai import types
+
+    prompt = f"""A user described a meal they ate: "{description}"
+Identify the food/meal and estimate its nutrition for a typical portion matching the description.
+Respond in {_lang_name(language)} for the "name" and "notes" fields only (numbers stay numeric).
+Return strict JSON with keys: name, calories, protein, carbs, fat, fiber, sugar, sodium (mg),
+quality_score (0-100 healthiness), notes (1 short sentence), healthier_alternative (1 short suggestion)."""
+
+    try:
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[prompt],
+            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.3, max_output_tokens=500),
+        )
+        return json.loads(resp.text)
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def narrate_body_analysis(result: dict, language: str = "en") -> str:
     """Optional AI-written summary layered on top of the deterministic calculations."""
     client = _client()

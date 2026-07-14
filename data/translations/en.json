@@ -283,5 +283,12 @@
   "nav_hint": "Navigate using the sidebar (☰ top-left on mobile) for Workouts, Nutrition, Progress, Profile & Premium.",
   "workout_reminders": "Workout Reminders",
   "meal_reminders": "Meal Reminders",
-  "water_reminders": "Water Reminders"
+  "water_reminders": "Water Reminders",
+
+  "describe_meal": "Describe Meal",
+  "describe_meal_placeholder": "e.g. grilled chicken breast with rice and steamed broccoli",
+  "photo_premium_notice": "Meal-photo recognition is a Premium feature. Describe your meal in words in the tab next to this one, or upgrade to unlock photo analysis.",
+  "log_sleep_hours": "Log Sleep (hours)",
+  "watch_demo": "Watch Demo",
+  "camera_not_trackable": "Live rep-counting isn't available for this exercise yet — use the manual counter below."
 }
