@@ -40,7 +40,7 @@ with st.form("edit_profile_form"):
                          format_func=lambda g: t(f"goal_{g}"))
     dietary = st.selectbox(t("dietary_preference"), DIETARY_PREFERENCES,
                             index=DIETARY_PREFERENCES.index(profile["dietary_preference"] or "none"),
-                            format_func=lambda d: d.replace("_", " ").title())
+                            format_func=lambda d: t(f"diet_{d}"))
     allergies = st.text_input(t("food_allergies"), value=profile["food_allergies"] or "")
     if st.form_submit_button(t("save"), type="primary", use_container_width=True):
         db.update_profile(user["id"], height_cm=height, weight_kg=weight, activity_level=activity,
@@ -48,7 +48,7 @@ with st.form("edit_profile_form"):
         st.success(t("success_saved"))
         st.rerun()
 
-section_title("📊", "Progress Snapshot")
+section_title("📊", t("progress_snapshot"))
 c1, c2, c3 = st.columns(3)
 with c1:
     stat_card("🔥", t("workout_streak"), f"{db.workout_streak(user['id'])} {t('days')}")
@@ -59,17 +59,17 @@ with c3:
     stat_card("🥇", t("metabolic_score"), str(latest["metabolic_score"]) if latest else "-")
 
 section_title("⚙️", t("notification_settings"))
-st.caption("Local build: preferences are saved for this session. Real push notifications need a mobile app + notification service — see README roadmap.")
+st.caption(t("notification_settings_note"))
 n1, n2, n3 = st.columns(3)
-n1.checkbox("Workout Reminders", value=True, key="notif_workout")
-n2.checkbox("Meal Reminders", value=True, key="notif_meals")
-n3.checkbox("Water Reminders", value=True, key="notif_water")
+n1.checkbox(t("workout_reminders"), value=True, key="notif_workout")
+n2.checkbox(t("meal_reminders"), value=True, key="notif_meals")
+n3.checkbox(t("water_reminders"), value=True, key="notif_water")
 
 section_title("🔒", t("privacy"))
-st.caption("All your data (profile, meals, workouts, chat history) is stored locally in fitfusion.db on this machine — nothing is uploaded except AI requests (chat text / meal photos) sent to Google Gemini when AI features are used.")
+st.caption(t("privacy_note"))
 
 section_title("🌙", t("dark_mode"))
-st.caption("FitFusion is a Dark Mode-only experience by design.")
+st.caption(t("dark_mode_note"))
 st.toggle(t("dark_mode"), value=True, disabled=True)
 
 st.divider()

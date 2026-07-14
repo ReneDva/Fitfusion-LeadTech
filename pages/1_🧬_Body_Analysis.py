@@ -30,7 +30,7 @@ with st.form("body_analysis_form"):
                          format_func=lambda g: t(f"goal_{g}"))
     c3, c4 = st.columns(2)
     body_fat = c3.number_input(t("body_fat_pct"), 0.0, 60.0, float(profile["body_fat_pct"] or 0.0))
-    sleep_hours = c4.number_input("Avg Sleep (hrs)", 0.0, 14.0, 7.0)
+    sleep_hours = c4.number_input(t("avg_sleep_hours"), 0.0, 14.0, 7.0)
     submitted = st.form_submit_button(t("run_analysis"), use_container_width=True, type="primary")
 
 if submitted:

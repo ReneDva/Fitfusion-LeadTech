@@ -32,7 +32,7 @@ with col_a:
 with col_b:
     section_title("🎯", t("target_muscles"))
     st.write(", ".join(m.replace("_", " ").title() for m in info["muscles"]))
-    section_title("💬", "Coach Cue")
+    section_title("💬", t("coach_cue"))
     st.info(info["cue"])
 
 cal_per_min = next((e["cal_per_min"] for e in EXERCISES if e["id"] == exercise), 8)
@@ -43,7 +43,13 @@ section_title("📷", t("start_camera"))
 if "trainer_start_time" not in st.session_state:
     st.session_state["trainer_start_time"] = None
 
+use_camera = False
 if pose_detection.POSE_AVAILABLE:
+    use_camera = st.toggle(f"📷 {t('use_camera_toggle')}", value=False, key="use_camera_toggle")
+else:
+    st.warning(t("camera_unavailable"))
+
+if use_camera:
     from streamlit_webrtc import webrtc_streamer, RTCConfiguration
 
     RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
@@ -94,9 +100,7 @@ if pose_detection.POSE_AVAILABLE:
         st.success(t("success_saved"))
         st.balloons()
 else:
-    st.warning(t("camera_unavailable"))
-
-    st.markdown(f"**Manual {t('rep_counter')}**")
+    st.markdown(f"**{t('manual_rep_counter')}**")
     if "manual_reps" not in st.session_state:
         st.session_state["manual_reps"] = 0
     mc1, mc2, mc3 = st.columns(3)

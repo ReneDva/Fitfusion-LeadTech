@@ -17,15 +17,17 @@ st.title(f"🏋️ {t('workout_plan_title')}")
 with st.expander(f"⚙️ {t('equipment')} / {t('workout_location')} / {t('workout_days_per_week')}"):
     location = st.selectbox(t("workout_location"), WORKOUT_LOCATIONS,
                              index=WORKOUT_LOCATIONS.index(profile["workout_location"] or "home"),
-                             format_func=lambda l: l.title())
+                             format_func=lambda l: t(f"location_{l}"))
     equipment = st.multiselect(
         t("equipment"),
         ["dumbbells", "barbell", "bench", "resistance_band", "pull_up_bar", "machine", "kettlebell", "jump_rope", "bike"],
         default=json.loads(profile["equipment"] or "[]"),
+        format_func=lambda e: t(f"equip_{e}"),
+        placeholder=t("choose_options"),
     )
-    experience = st.selectbox("Experience Level", EXPERIENCE_LEVELS,
+    experience = st.selectbox(t("experience_level"), EXPERIENCE_LEVELS,
                                index=EXPERIENCE_LEVELS.index(profile["experience_level"] or "beginner"),
-                               format_func=lambda e: e.title())
+                               format_func=lambda e: t(f"experience_{e}"))
     c1, c2 = st.columns(2)
     days = c1.slider(t("workout_days_per_week"), 1, 7, int(profile["workout_days_per_week"] or 3))
     minutes = c2.slider(t("session_minutes"), 15, 90, int(profile["session_minutes"] or 30))

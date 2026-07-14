@@ -20,7 +20,7 @@ tabs = st.tabs([f"📷 {t('take_photo')}", f"📤 {t('upload_image')}", f"🔍 {
 # --- Photo -----------------------------------------------------------------
 with tabs[0]:
     photo = st.camera_input(t("take_photo"), label_visibility="collapsed")
-    if photo and st.button("🧠 Analyze Photo", type="primary"):
+    if photo and st.button(f"🧠 {t('analyze')}", type="primary"):
         if not ai.ai_enabled():
             st.info(t("ai_disabled_notice"))
         else:
@@ -35,7 +35,7 @@ with tabs[0]:
 # --- Upload ------------------------------------------------------------------
 with tabs[1]:
     upload = st.file_uploader(t("upload_image"), type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-    if upload and st.button("🧠 Analyze Image", type="primary"):
+    if upload and st.button(f"🧠 {t('analyze')}", type="primary"):
         if not ai.ai_enabled():
             st.info(t("ai_disabled_notice"))
         else:
@@ -50,7 +50,7 @@ with tabs[1]:
 # --- Barcode -------------------------------------------------------------------
 with tabs[2]:
     barcode = st.text_input(t("scan_barcode"), placeholder="e.g. 737628064502")
-    if st.button("🔍 Look Up", type="primary") and barcode:
+    if st.button(f"🔍 {t('look_up')}", type="primary") and barcode:
         with st.spinner("Looking up product..."):
             result = nut.lookup_barcode(barcode)
         if "error" in result:
@@ -63,24 +63,24 @@ with tabs[3]:
     query = st.text_input(t("search_food"), placeholder="e.g. chicken, rice, banana")
     results = nut.search_food(query) if query else []
     if results:
-        chosen_name = st.selectbox("Results", [f["name"] for f in results])
-        grams = st.slider(f"Grams (g)", 10, 500, 100, step=10)
-        if st.button("➕ Use This Food", type="primary"):
+        chosen_name = st.selectbox(t("search_results"), [f["name"] for f in results])
+        grams = st.slider(t("grams_label"), 10, 500, 100, step=10)
+        if st.button(f"➕ {t('use_this_food')}", type="primary"):
             food = next(f for f in results if f["name"] == chosen_name)
             st.session_state["pending_meal"] = nut.scale_to_grams(food, grams)
     elif query:
-        st.caption("No local matches — try Take Photo or Scan Barcode for packaged foods.")
+        st.caption(t("no_local_matches"))
 
 # --- Build Meal --------------------------------------------------------------
 with tabs[4]:
     all_names = [f["name"] for f in nut.FOODS]
-    picked = st.multiselect("Add foods", all_names)
+    picked = st.multiselect(t("add_foods"), all_names)
     items = []
     for name in picked:
         food = next(f for f in nut.FOODS if f["name"] == name)
-        grams = st.slider(f"{name} (g)", 10, 500, 100, step=10, key=f"grams_{name}")
+        grams = st.slider(f"{name} ({t('g')})", 10, 500, 100, step=10, key=f"grams_{name}")
         items.append(nut.scale_to_grams(food, grams))
-    if items and st.button("🍱 Build This Meal", type="primary"):
+    if items and st.button(f"🍱 {t('build_this_meal')}", type="primary"):
         st.session_state["pending_meal"] = nut.aggregate_meal(items)
 
 # --- Pending meal review -----------------------------------------------------
@@ -92,7 +92,7 @@ if pending:
         pending["quality_score"] = nut.meal_quality_score(pending)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Calories", f"{round(pending.get('calories', 0))} {t('kcal')}")
+    c1.metric(t("calories_label"), f"{round(pending.get('calories', 0))} {t('kcal')}")
     c2.metric(t("protein"), f"{round(pending.get('protein', 0))}{t('g')}")
     c3.metric(t("carbs"), f"{round(pending.get('carbs', 0))}{t('g')}")
     c4.metric(t("fat"), f"{round(pending.get('fat', 0))}{t('g')}")
@@ -136,7 +136,7 @@ else:
 # --- Recipe generator ------------------------------------------------------------
 st.divider()
 section_title("👨‍🍳", t("generate_recipe"))
-recipe_prompt = st.text_input("What do you have / want?", placeholder="e.g. chicken, spinach, high protein dinner")
+recipe_prompt = st.text_input(t("recipe_prompt_label"), placeholder="e.g. chicken, spinach, high protein dinner")
 if st.button(t("generate_recipe"), use_container_width=True) and recipe_prompt:
     with st.spinner(t("loading_ai")):
         recipe = ai.generate_recipe(recipe_prompt, profile["dietary_preference"] or "none", current_language())

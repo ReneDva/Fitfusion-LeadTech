@@ -61,6 +61,8 @@ def inject_global_css():
         }}
         p, span, label, li {{ text-align: {text_align}; }}
         #MainMenu, footer {{ visibility: hidden; }}
+        [data-testid="stAppDeployButton"] {{ display: none !important; }}
+        [data-testid="stSidebarNav"] input {{ display: none !important; }}
 
         .ff-glass {{
             background: rgba(21, 21, 21, 0.75);
@@ -144,7 +146,10 @@ def app_shell_open():
 
 def glass_card(body_html: str, glow: str = "") -> None:
     glow_class = f"ff-glow-{glow}" if glow else ""
-    st.markdown(f'<div class="ff-glass {glow_class} ff-pop">{body_html}</div>', unsafe_allow_html=True)
+    # A blank/whitespace-only line here would end Streamlit's raw-HTML block early
+    # (CommonMark), leaking the closing </div> as visible text. Strip them.
+    cleaned = "\n".join(line for line in body_html.splitlines() if line.strip())
+    st.markdown(f'<div class="ff-glass {glow_class} ff-pop">{cleaned}</div>', unsafe_allow_html=True)
 
 
 def stat_card(icon: str, label: str, value: str, color: str = GOLD, sub: str = "") -> None:

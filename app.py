@@ -19,11 +19,14 @@ if LOGO_PATH.exists():
     from PIL import Image
     _page_icon = Image.open(LOGO_PATH)
 
-st.set_page_config(page_title=APP_NAME, page_icon=_page_icon, layout="centered", initial_sidebar_state="collapsed")
-app_shell_open()
-
 if "stage" not in st.session_state:
     st.session_state["stage"] = "splash"
+
+# Sidebar nav is only useful once there's somewhere to navigate to — keep it out of the
+# way during splash/onboarding/auth, but default it open once the user is past login.
+_sidebar_state = "expanded" if st.session_state["stage"] in ("profile_setup", "dashboard") else "collapsed"
+st.set_page_config(page_title=APP_NAME, page_icon=_page_icon, layout="centered", initial_sidebar_state=_sidebar_state)
+app_shell_open()
 if "onboarding_step" not in st.session_state:
     st.session_state["onboarding_step"] = 0
 
@@ -112,7 +115,7 @@ def render_auth():
         st.subheader(t("signup_title"))
         st.caption(t("signup_subtitle"))
         with st.form("signup_form"):
-            name = st.text_input("Name")
+            name = st.text_input(t("name"))
             email = st.text_input(t("email"))
             username = st.text_input(t("username"))
             password = st.text_input(t("password"), type="password")
@@ -145,21 +148,23 @@ def render_profile_setup():
 
         activity = st.selectbox(t("activity_level"), ACTIVITY_LEVELS, format_func=lambda a: t(f"activity_{a}"))
         goal = st.selectbox(t("fitness_goal"), FITNESS_GOALS, format_func=lambda g: t(f"goal_{g}"))
-        experience = st.selectbox("Experience Level", EXPERIENCE_LEVELS, format_func=lambda e: e.title())
+        experience = st.selectbox(t("experience_level"), EXPERIENCE_LEVELS, format_func=lambda e: t(f"experience_{e}"))
 
         c3, c4 = st.columns(2)
         body_fat = c3.number_input(t("body_fat_pct"), 0.0, 60.0, 0.0)
         muscle_mass = c4.number_input(t("muscle_mass_kg"), 0.0, 100.0, 0.0)
 
-        dietary = st.selectbox(t("dietary_preference"), DIETARY_PREFERENCES, format_func=lambda d: d.replace("_", " ").title())
+        dietary = st.selectbox(t("dietary_preference"), DIETARY_PREFERENCES, format_func=lambda d: t(f"diet_{d}"))
         allergies = st.text_input(t("food_allergies"))
         medical = st.text_input(t("medical_limitations"))
 
         st.markdown(f"**{t('workout_location')} & {t('equipment')}**")
-        location = st.selectbox(t("workout_location"), WORKOUT_LOCATIONS, format_func=lambda l: l.title())
+        location = st.selectbox(t("workout_location"), WORKOUT_LOCATIONS, format_func=lambda l: t(f"location_{l}"))
         equipment = st.multiselect(
             t("equipment"),
             ["dumbbells", "barbell", "bench", "resistance_band", "pull_up_bar", "machine", "kettlebell", "jump_rope", "bike"],
+            format_func=lambda e: t(f"equip_{e}"),
+            placeholder=t("choose_options"),
         )
         c5, c6 = st.columns(2)
         days_per_week = c5.slider(t("workout_days_per_week"), 1, 7, 3)
@@ -261,7 +266,7 @@ def render_dashboard():
         st.page_link("pages/1_🧬_Body_Analysis.py", label=t("analyze_my_body"), icon="🧬")
 
     st.divider()
-    st.caption("Navigate using the sidebar (☰ top-left on mobile) for Workouts, Nutrition, Progress, Profile & Premium.")
+    st.caption(t("nav_hint"))
 
 
 # ---------------------------------------------------------------- ROUTER ----

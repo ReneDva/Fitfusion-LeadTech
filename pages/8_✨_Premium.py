@@ -32,7 +32,7 @@ with c1:
         st.balloons()
         st.rerun()
 with c2:
-    if st.button("Manage Subscription", use_container_width=True):
+    if st.button(t("manage_subscription"), use_container_width=True):
         db.set_subscription(user["id"], "free")
         st.success(t("success_saved"))
         st.rerun()
