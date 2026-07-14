@@ -290,5 +290,19 @@
   "photo_premium_notice": "Meal-photo recognition is a Premium feature. Describe your meal in words in the tab next to this one, or upgrade to unlock photo analysis.",
   "log_sleep_hours": "Log Sleep (hours)",
   "watch_demo": "Watch Demo",
-  "camera_not_trackable": "Live rep-counting isn't available for this exercise yet — use the manual counter below."
+  "camera_not_trackable": "Live rep-counting isn't available for this exercise yet — use the manual counter below.",
+
+  "choose_day": "Choose Day",
+  "exercise_progress": "Exercise {current} of {total}",
+  "mark_done_next": "Mark Done & Next",
+  "skip_exercise": "Skip",
+  "workout_complete_title": "Workout Complete!",
+  "workout_complete_body": "Great work — you finished every exercise in today's routine.",
+  "free_practice": "Free Practice",
+  "do_another_day": "Do Another Day",
+  "exercises_completed": "Exercises Completed",
+  "no_plan_yet": "You don't have a workout plan yet — generate one on the Workouts page first.",
+  "go_to_workouts": "Go to Workouts",
+  "todays_routine": "Today's Routine",
+  "demo_not_ready": "No demo video assigned yet — this opens a YouTube search instead."
 }

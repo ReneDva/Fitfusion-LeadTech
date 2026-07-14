@@ -56,7 +56,7 @@ plan = json.loads(plan_row["plan_json"])
 st.caption(f"AI-adapted volume: ×{plan.get('adjustment_factor', 1.0)} · {t('est_calories_burned')}: {plan.get('weekly_est_calories', 0)} {t('kcal')}/week")
 
 day_tabs = st.tabs([d["day"] for d in plan["days"]])
-for tab, day in zip(day_tabs, plan["days"]):
+for day_idx, (tab, day) in enumerate(zip(day_tabs, plan["days"])):
     with tab:
         section_title("📅", f"{day['focus']} · {day['duration_min']} min · {day['est_calories']} {t('kcal')}")
         for ex in day["exercises"]:
@@ -75,5 +75,7 @@ for tab, day in zip(day_tabs, plan["days"]):
                 """
             )
         if st.button(f"▶️ {t('start_workout')}", key=f"start_{day['day']}", use_container_width=True, type="primary"):
-            st.session_state["trainer_day_exercises"] = day["exercises"]
+            st.session_state["trainer_queue"] = day["exercises"]
+            st.session_state["trainer_idx"] = 0
+            st.session_state["trainer_day_idx"] = day_idx
             st.switch_page("pages/3_🕺_3D_Trainer.py")
