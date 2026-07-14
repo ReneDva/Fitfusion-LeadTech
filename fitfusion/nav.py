@@ -1,9 +1,9 @@
 """Shared sidebar chrome + auth guard used by app.py and every page in pages/."""
 import streamlit as st
 
-from fitfusion.config import APP_NAME, SUPPORTED_LANGUAGES
+from fitfusion.config import SUPPORTED_LANGUAGES
 from fitfusion.i18n import t, current_language, set_language
-from fitfusion.styles import app_shell_open
+from fitfusion.styles import app_shell_open, sidebar_logo_html
 from fitfusion.db import get_user, get_profile, get_subscription
 
 
@@ -20,7 +20,7 @@ def require_login():
 def render_sidebar():
     user_id = st.session_state.get("user_id")
     with st.sidebar:
-        st.markdown(f"### 💪 {APP_NAME}")
+        st.markdown(sidebar_logo_html(), unsafe_allow_html=True)
         if user_id:
             user = get_user(user_id)
             sub = get_subscription(user_id)

@@ -9,12 +9,17 @@ import streamlit as st
 
 from fitfusion.config import APP_NAME, SLOGAN, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, GOLD, BLUE
 from fitfusion.i18n import t, current_language
-from fitfusion.styles import app_shell_open, glass_card, stat_card, section_title, gold_glow_logo
+from fitfusion.styles import app_shell_open, glass_card, stat_card, section_title, gold_glow_logo, LOGO_PATH
 from fitfusion.nav import render_sidebar
 from fitfusion import db, auth, calculations, workout_engine
 from fitfusion.charts import progress_ring
 
-st.set_page_config(page_title=APP_NAME, page_icon="💪", layout="centered", initial_sidebar_state="collapsed")
+_page_icon = "💪"
+if LOGO_PATH.exists():
+    from PIL import Image
+    _page_icon = Image.open(LOGO_PATH)
+
+st.set_page_config(page_title=APP_NAME, page_icon=_page_icon, layout="centered", initial_sidebar_state="collapsed")
 app_shell_open()
 
 if "stage" not in st.session_state:

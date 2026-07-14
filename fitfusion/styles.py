@@ -4,10 +4,37 @@ Streamlit generates the page's HTML/CSS/JS itself — this module only supplies 
 (scoped, no external assets) and small HTML snippets for cards. No hand-written page
 templates are needed anywhere else in the app.
 """
+import base64
+
 import streamlit as st
 
-from fitfusion.config import GOLD, BLUE, BG, CARD_BG, BG_SECONDARY, TEXT_SECONDARY
+from fitfusion.config import GOLD, BLUE, BG, CARD_BG, BG_SECONDARY, TEXT_SECONDARY, APP_NAME, ASSETS_DIR
 from fitfusion.i18n import is_rtl
+
+LOGO_PATH = ASSETS_DIR / "fitfusion-logo.png"
+_logo_b64_cache = None
+_logo_thumb_b64_cache = None
+
+
+def _logo_base64() -> str:
+    global _logo_b64_cache
+    if _logo_b64_cache is None:
+        _logo_b64_cache = base64.b64encode(LOGO_PATH.read_bytes()).decode() if LOGO_PATH.exists() else ""
+    return _logo_b64_cache
+
+
+def _logo_thumb_base64(size: int = 96) -> str:
+    """Small resized copy for the sidebar — avoids shipping the full-res PNG on every page nav."""
+    global _logo_thumb_b64_cache
+    if _logo_thumb_b64_cache is None and LOGO_PATH.exists():
+        import io
+        from PIL import Image
+        img = Image.open(LOGO_PATH).convert("RGB")
+        img.thumbnail((size, size))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        _logo_thumb_b64_cache = base64.b64encode(buf.getvalue()).decode()
+    return _logo_thumb_b64_cache or ""
 
 
 def inject_global_css():
@@ -149,13 +176,31 @@ def ai_thinking(text: str) -> None:
 
 
 def gold_glow_logo(size_px: int = 120) -> str:
+    b64 = _logo_base64()
+    inner = (
+        f'<img src="data:image/png;base64,{b64}" style="width:100%;height:100%;object-fit:cover;border-radius:32px" />'
+        if b64 else "💪"
+    )
+    background = "transparent" if b64 else f"linear-gradient(135deg,{GOLD},#ffcf6b)"
     return f"""
     <div style="display:flex;justify-content:center;padding:24px 0">
       <div style="
         width:{size_px}px;height:{size_px}px;border-radius:32px;
-        display:flex;align-items:center;justify-content:center;
-        background:linear-gradient(135deg,{GOLD},#ffcf6b);
+        display:flex;align-items:center;justify-content:center;overflow:hidden;
+        background:{background};
         box-shadow:0 0 60px rgba(244,178,35,0.55), 0 0 120px rgba(244,178,35,0.25);
-        font-size:{int(size_px*0.5)}px;">💪</div>
+        font-size:{int(size_px*0.5)}px;">{inner}</div>
+    </div>
+    """
+
+
+def sidebar_logo_html() -> str:
+    b64 = _logo_thumb_base64()
+    if not b64:
+        return f"<h3>💪 {APP_NAME}</h3>"
+    return f"""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <img src="data:image/png;base64,{b64}" style="width:36px;height:36px;border-radius:10px;object-fit:cover" />
+      <span style="font-size:19px;font-weight:800">{APP_NAME}</span>
     </div>
     """
