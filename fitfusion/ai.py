@@ -1,14 +1,14 @@
-"""Shared-key OpenAI integration: AI Coach chat, meal-photo recognition, body-analysis narrative.
+"""Shared-key Google Gemini integration: AI Coach chat, meal-photo recognition, body-analysis narrative.
 
-One OPENAI_API_KEY (set by whoever runs this app) powers AI features for every local user —
-per the product decision, users never enter their own key. When no key is configured the
-app keeps working in a rule-based offline mode instead of breaking.
+One GEMMINI_API_KEY (set by whoever runs this app, using the free Gemini API tier) powers AI
+features for every local user — per the product decision, users never enter their own key.
+When no key is configured the app keeps working in a rule-based offline mode instead of breaking.
 """
 import json
 
 import streamlit as st
 
-from fitfusion.config import OPENAI_API_KEY, OPENAI_MODEL, AI_ENABLED, SUPPORTED_LANGUAGES
+from fitfusion.config import GEMINI_API_KEY, GEMINI_MODEL, AI_ENABLED, SUPPORTED_LANGUAGES
 
 COACH_SYSTEM_PROMPT = """You are the FitFusion AI Coach: a friendly, motivational, evidence-based
 fitness and nutrition expert. Personality: warm, positive, professional, encouraging, never robotic.
@@ -23,8 +23,8 @@ not a literal translation."""
 def _client():
     if not AI_ENABLED:
         return None
-    from openai import OpenAI
-    return OpenAI(api_key=OPENAI_API_KEY)
+    from google import genai
+    return genai.Client(api_key=GEMINI_API_KEY)
 
 
 def ai_enabled() -> bool:
@@ -47,8 +47,17 @@ def _offline_coach_reply(message: str, language: str) -> str:
         reply = "A good baseline is ~35ml of water per kg of bodyweight, more on training days or in hot climates."
     else:
         reply = "Great question! Focus on the fundamentals: consistent training, adequate protein, enough sleep, and staying hydrated — small consistent habits beat perfection."
-    reply += "\n\n(Offline mode — set OPENAI_API_KEY in .env for full AI Coach responses.)"
+    reply += "\n\n(Offline mode — set GEMMINI_API_KEY in .env for full AI Coach responses.)"
     return reply
+
+
+def _to_gemini_history(history: list[dict]):
+    from google.genai import types
+    contents = []
+    for msg in history:
+        role = "model" if msg["role"] == "assistant" else "user"
+        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
+    return contents
 
 
 def chat_with_coach(message: str, history: list[dict], language: str = "en", user_context: str = "") -> str:
@@ -57,26 +66,33 @@ def chat_with_coach(message: str, history: list[dict], language: str = "en", use
     if client is None:
         return _offline_coach_reply(message, language)
 
+    from google.genai import types
+
     system = COACH_SYSTEM_PROMPT.format(language_name=_lang_name(language))
     if user_context:
         system += f"\n\nWhat you know about this user: {user_context}"
 
-    messages = [{"role": "system", "content": system}]
-    messages += history[-20:]
-    messages.append({"role": "user", "content": message})
+    contents = _to_gemini_history(history[-20:])
+    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=message)]))
 
     try:
-        resp = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, temperature=0.7, max_tokens=500)
-        return resp.choices[0].message.content.strip()
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=system, temperature=0.7, max_output_tokens=500),
+        )
+        return (resp.text or "").strip()
     except Exception as e:
         return f"The AI Coach hit a network/API error ({e}). Please try again in a moment."
 
 
-def analyze_meal_photo(image_b64: str, language: str = "en") -> dict:
-    """Returns nutrition dict from a base64-encoded food photo, or an 'error' key on failure."""
+def analyze_meal_photo(image_bytes: bytes, language: str = "en") -> dict:
+    """Returns nutrition dict from a food photo (raw bytes), or an 'error' key on failure."""
     client = _client()
     if client is None:
         return {"error": "offline"}
+
+    from google.genai import types
 
     prompt = f"""Identify the food/meal in this photo and estimate its nutrition for the visible portion.
 Respond in {_lang_name(language)} for the "name" and "notes" fields only (numbers stay numeric).
@@ -84,22 +100,12 @@ Return strict JSON with keys: name, calories, protein, carbs, fat, fiber, sugar,
 quality_score (0-100 healthiness), notes (1 short sentence), healthier_alternative (1 short suggestion)."""
 
     try:
-        resp = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
-                    ],
-                }
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.3,
-            max_tokens=500,
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"), prompt],
+            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.3, max_output_tokens=500),
         )
-        return json.loads(resp.choices[0].message.content)
+        return json.loads(resp.text)
     except Exception as e:
         return {"error": str(e)}
 
@@ -112,13 +118,13 @@ def narrate_body_analysis(result: dict, language: str = "en") -> str:
     prompt = f"""Write a warm, motivational 2-3 sentence summary (in {_lang_name(language)}) of this user's
 body analysis, highlighting their strongest positive and one clear next step. Data: {json.dumps(result)}"""
     try:
-        resp = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.6,
-            max_tokens=200,
+        from google.genai import types
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[prompt],
+            config=types.GenerateContentConfig(temperature=0.6, max_output_tokens=200),
         )
-        return resp.choices[0].message.content.strip()
+        return (resp.text or "").strip()
     except Exception:
         return ""
 
@@ -126,14 +132,17 @@ body analysis, highlighting their strongest positive and one clear next step. Da
 def generate_recipe(ingredients_or_goal: str, dietary_preference: str = "none", language: str = "en") -> str:
     client = _client()
     if client is None:
-        return "Recipe generation needs an OpenAI key. Set OPENAI_API_KEY in .env to enable this feature."
+        return "Recipe generation needs a Gemini key. Set GEMMINI_API_KEY in .env to enable this feature."
     prompt = f"""Create one healthy recipe (in {_lang_name(language)}) based on: "{ingredients_or_goal}".
 Dietary preference: {dietary_preference}. Include a short ingredient list, steps, and approximate calories/macros.
 Keep it under 200 words."""
     try:
-        resp = client.chat.completions.create(
-            model=OPENAI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=500
+        from google.genai import types
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[prompt],
+            config=types.GenerateContentConfig(temperature=0.7, max_output_tokens=500),
         )
-        return resp.choices[0].message.content.strip()
+        return (resp.text or "").strip()
     except Exception as e:
         return f"Couldn't generate a recipe right now ({e})."

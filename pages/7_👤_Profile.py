@@ -66,7 +66,7 @@ n2.checkbox("Meal Reminders", value=True, key="notif_meals")
 n3.checkbox("Water Reminders", value=True, key="notif_water")
 
 section_title("🔒", t("privacy"))
-st.caption("All your data (profile, meals, workouts, chat history) is stored locally in fitfusion.db on this machine — nothing is uploaded except AI requests (chat text / meal photos) sent to OpenAI when AI features are used.")
+st.caption("All your data (profile, meals, workouts, chat history) is stored locally in fitfusion.db on this machine — nothing is uploaded except AI requests (chat text / meal photos) sent to Google Gemini when AI features are used.")
 
 section_title("🌙", t("dark_mode"))
 st.caption("FitFusion is a Dark Mode-only experience by design.")

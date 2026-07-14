@@ -7,8 +7,8 @@ and a Premium tier preview — all in one dark, gold/blue/green "glass" themed a
 
 Built with **[Streamlit](https://streamlit.io)** so the entire UI is written in Python — no
 HTML/CSS/JavaScript required to run or modify it. Data is stored locally in a SQLite file;
-the only network calls are optional (OpenAI, for AI Coach / meal-photo recognition, and the
-free OpenFoodFacts API for barcode lookups).
+the only network calls are optional (Google Gemini, for AI Coach / meal-photo recognition, and
+the free OpenFoodFacts API for barcode lookups).
 
 ---
 
@@ -16,9 +16,9 @@ free OpenFoodFacts API for barcode lookups).
 
 - **Python 3.10 or newer** — check with `python --version`
 - A webcam is optional (only needed for the live 3D Trainer rep counter)
-- An [OpenAI API key](https://platform.openai.com/api-keys) is optional (only needed for AI
-  Coach chat, meal-photo recognition, and AI-written body-analysis summaries — everything
-  else works fully offline)
+- A free [Google Gemini API key](https://aistudio.google.com/apikey) is optional (only needed
+  for AI Coach chat, meal-photo recognition, and AI-written body-analysis summaries —
+  everything else works fully offline)
 
 ## 2. Setup
 
@@ -58,7 +58,7 @@ cp .env.example .env
 
 Then open `.env` in any text editor and set:
 ```
-OPENAI_API_KEY=sk-...your-key...
+GEMMINI_API_KEY=your-key-here
 ```
 
 This one key is shared by every user of this local instance — nobody is asked to enter their
@@ -106,7 +106,7 @@ fitfusion/
   db.py                  # SQLite schema + all read/write helpers
   auth.py                # Password hashing, signup/login
   calculations.py        # BMI / BMR / TDEE / macros / body type / metabolic score formulas
-  ai.py                  # Shared-key OpenAI integration (chat, meal photo, narratives)
+  ai.py                  # Shared-key Google Gemini integration (chat, meal photo, narratives)
   workout_engine.py       # Rule-based AI workout plan generator
   nutrition_engine.py     # Local food DB search + OpenFoodFacts barcode lookup + scoring
   pose_detection.py       # mediapipe + streamlit-webrtc live rep counter
@@ -142,7 +142,7 @@ simplified for a **local, Python-only, no-payment-processor app**:
 | Bottom navigation | Streamlit sidebar (collapses to a ☰ menu on narrow screens) | Fixed mobile bottom tab bar |
 | Notifications | In-app only, per-session toggle | OS push notifications (needs a native/mobile shell + push service) |
 | Wearable sync (Apple Health, Fitbit, Garmin, etc.) | Not connected | Real device SDK integrations |
-| Meal recognition / AI Coach | Real OpenAI vision + chat calls when `OPENAI_API_KEY` is set; rule-based fallback otherwise | Same, always-on |
+| Meal recognition / AI Coach | Real Gemini vision + chat calls when `GEMMINI_API_KEY` is set; rule-based fallback otherwise | Same, always-on |
 
 These are natural next steps if this app were wrapped in a native mobile shell (e.g. with
 Capacitor/Flutter) or given a real backend + payment provider — the data model in `db.py` was

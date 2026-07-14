@@ -10,9 +10,10 @@ DB_PATH = ROOT_DIR / "fitfusion.db"
 
 load_dotenv(ROOT_DIR / ".env")
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-AI_ENABLED = bool(OPENAI_API_KEY) and not OPENAI_API_KEY.startswith("sk-your-key")
+# Env var name matches this project's .env (intentional spelling: GEMMINI, not GEMINI).
+GEMINI_API_KEY = os.getenv("GEMMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+AI_ENABLED = bool(GEMINI_API_KEY) and not GEMINI_API_KEY.startswith("your-key")
 
 # Brand palette
 GOLD = "#F4B223"

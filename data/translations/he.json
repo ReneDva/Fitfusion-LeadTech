@@ -174,7 +174,7 @@
   "ai_coach_placeholder": "שאלו אותי על כושר, תזונה, התאוששות, תוספים...",
   "send": "שליחה",
   "ai_thinking": "מאמן ה-AI חושב...",
-  "ai_disabled_notice": "תכונות ה-AI פועלות כרגע במצב חוקים לא מקוון. הגדירו OPENAI_API_KEY בקובץ ה-.env כדי להפעיל תשובות AI מלאות.",
+  "ai_disabled_notice": "תכונות ה-AI פועלות כרגע במצב חוקים לא מקוון. הגדירו GEMMINI_API_KEY בקובץ ה-.env כדי להפעיל תשובות AI מלאות.",
 
   "progress_title": "לוח בקרת התקדמות",
   "weight_history": "היסטוריית משקל",

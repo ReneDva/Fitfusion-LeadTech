@@ -1,5 +1,3 @@
-import base64
-
 import streamlit as st
 
 from fitfusion.i18n import t, current_language
@@ -27,8 +25,7 @@ with tabs[0]:
             st.info(t("ai_disabled_notice"))
         else:
             with st.spinner(t("loading_ai")):
-                b64 = base64.b64encode(photo.getvalue()).decode()
-                result = ai.analyze_meal_photo(b64, current_language())
+                result = ai.analyze_meal_photo(photo.getvalue(), current_language())
             if "error" in result:
                 st.error(f"Couldn't analyze this photo ({result['error']}). Try Build Meal Manually instead.")
             else:
@@ -43,8 +40,7 @@ with tabs[1]:
             st.info(t("ai_disabled_notice"))
         else:
             with st.spinner(t("loading_ai")):
-                b64 = base64.b64encode(upload.getvalue()).decode()
-                result = ai.analyze_meal_photo(b64, current_language())
+                result = ai.analyze_meal_photo(upload.getvalue(), current_language())
             if "error" in result:
                 st.error(f"Couldn't analyze this image ({result['error']}). Try Build Meal Manually instead.")
             else:

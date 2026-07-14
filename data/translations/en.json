@@ -174,7 +174,7 @@
   "ai_coach_placeholder": "Ask me about fitness, nutrition, recovery, supplements...",
   "send": "Send",
   "ai_thinking": "AI Coach is thinking...",
-  "ai_disabled_notice": "AI features are running in offline/rule-based mode. Set OPENAI_API_KEY in your .env file to enable full AI Coach responses.",
+  "ai_disabled_notice": "AI features are running in offline/rule-based mode. Set GEMMINI_API_KEY in your .env file to enable full AI Coach responses.",
 
   "progress_title": "Progress Dashboard",
   "weight_history": "Weight History",
