@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+fitfusion.db
+*.db
+*.log
+.streamlit/secrets.toml

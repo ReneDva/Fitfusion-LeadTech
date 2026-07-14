@@ -1,0 +1,273 @@
+"""FitFusion — AI Fitness & Nutrition Platform.
+
+Entry point: splash -> onboarding -> auth -> profile setup -> dashboard (Home).
+Run with:  streamlit run app.py
+"""
+import time
+
+import streamlit as st
+
+from fitfusion.config import APP_NAME, SLOGAN, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, GOLD, BLUE
+from fitfusion.i18n import t, current_language
+from fitfusion.styles import app_shell_open, glass_card, stat_card, section_title, gold_glow_logo
+from fitfusion.nav import render_sidebar
+from fitfusion import db, auth, calculations, workout_engine
+from fitfusion.charts import progress_ring
+
+st.set_page_config(page_title=APP_NAME, page_icon="💪", layout="centered", initial_sidebar_state="collapsed")
+app_shell_open()
+
+if "stage" not in st.session_state:
+    st.session_state["stage"] = "splash"
+if "onboarding_step" not in st.session_state:
+    st.session_state["onboarding_step"] = 0
+
+
+# ---------------------------------------------------------------- SPLASH ----
+def render_splash():
+    st.markdown(gold_glow_logo(140), unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align:center'>{APP_NAME}</h1>", unsafe_allow_html=True)
+    lang = current_language()
+    st.markdown(f"<p style='text-align:center;color:{BLUE};font-weight:600'>{SLOGAN.get(lang, SLOGAN['en'])}</p>", unsafe_allow_html=True)
+    with st.spinner(t("loading")):
+        time.sleep(1.1)
+    st.session_state["stage"] = "onboarding"
+    st.rerun()
+
+
+# ------------------------------------------------------------ ONBOARDING ----
+ONBOARDING_PAGES = [
+    ("🤖", "onboarding_title_1", "onboarding_body_1"),
+    ("🥗", "onboarding_title_2", "onboarding_body_2"),
+    ("🧬", "onboarding_title_3", "onboarding_body_3"),
+    ("🕺", "onboarding_title_4", "onboarding_body_4"),
+    ("📈", "onboarding_title_5", "onboarding_body_5"),
+]
+
+
+def render_onboarding():
+    step = st.session_state["onboarding_step"]
+    icon, title_key, body_key = ONBOARDING_PAGES[step]
+    st.markdown(f"<div style='text-align:center;font-size:90px;margin-top:30px'>{icon}</div>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center'>{t(title_key)}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;color:#B3B3B3;font-size:16px'>{t(body_key)}</p>", unsafe_allow_html=True)
+
+    dots = "".join(
+        f'<span style="display:inline-block;width:{10 if i==step else 7}px;height:{10 if i==step else 7}px;'
+        f'border-radius:50%;margin:0 4px;background:{GOLD if i==step else "#333"}"></span>'
+        for i in range(len(ONBOARDING_PAGES))
+    )
+    st.markdown(f"<div style='text-align:center;margin:20px 0'>{dots}</div>", unsafe_allow_html=True)
+
+    is_last = step == len(ONBOARDING_PAGES) - 1
+    c1, c2 = st.columns(2)
+    with c1:
+        if not is_last and st.button(t("skip"), use_container_width=True, type="secondary"):
+            st.session_state["stage"] = "auth"
+            st.rerun()
+    with c2:
+        label = t("start_journey") if is_last else t("next")
+        if st.button(label, use_container_width=True, type="primary"):
+            if is_last:
+                st.session_state["stage"] = "auth"
+            else:
+                st.session_state["onboarding_step"] += 1
+            st.rerun()
+
+
+# ------------------------------------------------------------------ AUTH ----
+def render_auth():
+    st.markdown(gold_glow_logo(80), unsafe_allow_html=True)
+    tab_login, tab_signup = st.tabs([t("login_button"), t("signup_button")])
+
+    with tab_login:
+        st.subheader(t("login_title"))
+        st.caption(t("login_subtitle"))
+        with st.form("login_form"):
+            identifier = st.text_input(f"{t('email')} / {t('username')}")
+            password = st.text_input(t("password"), type="password")
+            submitted = st.form_submit_button(t("login_button"), use_container_width=True, type="primary")
+        if submitted:
+            user, error = auth.login(identifier, password)
+            if error:
+                st.error(t(error))
+            else:
+                st.session_state["user_id"] = user["id"]
+                profile = db.get_profile(user["id"])
+                st.session_state["stage"] = "dashboard" if profile and profile["onboarded"] else "profile_setup"
+                st.rerun()
+        st.divider()
+        oc1, oc2 = st.columns(2)
+        if oc1.button(t("continue_google"), use_container_width=True):
+            st.info("Google Sign-In needs a registered OAuth app — not wired up in this local build. Please use email/password.")
+        if oc2.button(t("continue_apple"), use_container_width=True):
+            st.info("Apple Sign-In needs a registered OAuth app — not wired up in this local build. Please use email/password.")
+
+    with tab_signup:
+        st.subheader(t("signup_title"))
+        st.caption(t("signup_subtitle"))
+        with st.form("signup_form"):
+            name = st.text_input("Name")
+            email = st.text_input(t("email"))
+            username = st.text_input(t("username"))
+            password = st.text_input(t("password"), type="password")
+            confirm = st.text_input(t("confirm_password"), type="password")
+            submitted = st.form_submit_button(t("signup_button"), use_container_width=True, type="primary")
+        if submitted:
+            if password != confirm:
+                st.error(t("passwords_dont_match"))
+            else:
+                user_id, error = auth.signup(email, username, name, password)
+                if error:
+                    st.error(t(error))
+                else:
+                    st.session_state["user_id"] = user_id
+                    st.session_state["stage"] = "profile_setup"
+                    st.success(t("success_saved"))
+                    st.rerun()
+
+
+# ------------------------------------------------------------ PROFILE SETUP ----
+def render_profile_setup():
+    st.header(t("profile_setup_title"))
+    st.caption(t("profile_setup_subtitle"))
+    with st.form("profile_setup_form"):
+        c1, c2 = st.columns(2)
+        height = c1.number_input(t("height_cm"), 100.0, 250.0, 170.0)
+        weight = c2.number_input(t("weight_kg"), 30.0, 300.0, 70.0)
+        age = c1.number_input(t("age"), 13, 100, 28)
+        gender = c2.selectbox(t("gender"), ["male", "female", "other"], format_func=lambda g: t(g))
+
+        activity = st.selectbox(t("activity_level"), ACTIVITY_LEVELS, format_func=lambda a: t(f"activity_{a}"))
+        goal = st.selectbox(t("fitness_goal"), FITNESS_GOALS, format_func=lambda g: t(f"goal_{g}"))
+        experience = st.selectbox("Experience Level", EXPERIENCE_LEVELS, format_func=lambda e: e.title())
+
+        c3, c4 = st.columns(2)
+        body_fat = c3.number_input(t("body_fat_pct"), 0.0, 60.0, 0.0)
+        muscle_mass = c4.number_input(t("muscle_mass_kg"), 0.0, 100.0, 0.0)
+
+        dietary = st.selectbox(t("dietary_preference"), DIETARY_PREFERENCES, format_func=lambda d: d.replace("_", " ").title())
+        allergies = st.text_input(t("food_allergies"))
+        medical = st.text_input(t("medical_limitations"))
+
+        st.markdown(f"**{t('workout_location')} & {t('equipment')}**")
+        location = st.selectbox(t("workout_location"), WORKOUT_LOCATIONS, format_func=lambda l: l.title())
+        equipment = st.multiselect(
+            t("equipment"),
+            ["dumbbells", "barbell", "bench", "resistance_band", "pull_up_bar", "machine", "kettlebell", "jump_rope", "bike"],
+        )
+        c5, c6 = st.columns(2)
+        days_per_week = c5.slider(t("workout_days_per_week"), 1, 7, 3)
+        session_minutes = c6.slider(t("session_minutes"), 15, 90, 30)
+
+        submitted = st.form_submit_button(t("save_continue"), use_container_width=True, type="primary")
+
+    if submitted:
+        profile_fields = dict(
+            height_cm=height, weight_kg=weight, age=int(age), gender=gender,
+            activity_level=activity, fitness_goal=goal, experience_level=experience,
+            body_fat_pct=body_fat or None, muscle_mass_kg=muscle_mass or None,
+            dietary_preference=dietary, food_allergies=allergies, medical_limitations=medical,
+            workout_location=location, equipment=str(equipment).replace("'", '"'),
+            workout_days_per_week=days_per_week, session_minutes=session_minutes, onboarded=1,
+        )
+        db.update_profile(st.session_state["user_id"], **profile_fields)
+
+        analysis_input = dict(profile_fields)
+        result = calculations.full_body_analysis(analysis_input)
+        db.save_body_analysis(st.session_state["user_id"], result)
+
+        plan_input = dict(profile_fields, equipment=equipment)
+        plan = workout_engine.generate_plan(plan_input, st.session_state["user_id"])
+        db.save_workout_plan(st.session_state["user_id"], goal, plan)
+
+        st.session_state["stage"] = "dashboard"
+        st.success(t("success_saved"))
+        st.rerun()
+
+
+# --------------------------------------------------------------- DASHBOARD ----
+def render_dashboard():
+    render_sidebar()
+    user, profile = db.get_user(st.session_state["user_id"]), db.get_profile(st.session_state["user_id"])
+
+    st.markdown(f"### {t('dashboard_greeting', name=user['name'])}")
+    st.markdown(f"<p style='color:#B3B3B3;font-style:italic'>&ldquo;{t('daily_quote')}&rdquo;</p>", unsafe_allow_html=True)
+
+    analysis = db.latest_body_analysis(user["id"])
+    daily_calories = analysis["daily_calories"] if analysis else 2000
+    meals_today = db.meals_for_date(user["id"])
+    consumed = sum(m["calories"] for m in meals_today)
+    remaining = max(0, daily_calories - consumed)
+    water_cups = db.water_today(user["id"])
+    streak = db.workout_streak(user["id"])
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.plotly_chart(progress_ring(consumed, daily_calories, t("calories_goal"), GOLD), use_container_width=True, config={"displayModeBar": False})
+    with c2:
+        st.plotly_chart(progress_ring(water_cups, 8, t("water_intake"), BLUE), use_container_width=True, config={"displayModeBar": False})
+    with c3:
+        activity_score = min(100, streak * 15 + (20 if meals_today else 0))
+        st.plotly_chart(progress_ring(activity_score, 100, t("activity_score"), "#8BC53F"), use_container_width=True, config={"displayModeBar": False})
+
+    b1, b2, b3, b4 = st.columns(4)
+    with b1:
+        stat_card("🔥", t("workout_streak"), f"{streak} {t('days')}")
+    with b2:
+        sleep_rows = db.sleep_logs(user["id"])
+        last_sleep = sleep_rows[-1]["hours"] if sleep_rows else 0
+        stat_card("😴", t("sleep_summary"), f"{last_sleep} h")
+    with b3:
+        goal_label = t(f"goal_{profile['fitness_goal']}") if profile and profile["fitness_goal"] else "-"
+        stat_card("🧬", t("body_status"), goal_label)
+    with b4:
+        stat_card("🥇", t("metabolic_score"), str(analysis["metabolic_score"]) if analysis else "-")
+
+    wc1, wc2 = st.columns(2)
+    with wc1:
+        if st.button(f"💧 {t('log_water')}", use_container_width=True):
+            db.log_water(user["id"], 1)
+            st.rerun()
+    with wc2:
+        hours = st.number_input(t("log_sleep"), 0.0, 14.0, 7.0, step=0.5, label_visibility="collapsed")
+        if st.button(f"😴 {t('log_sleep')}", use_container_width=True):
+            db.log_sleep(user["id"], hours)
+            st.rerun()
+
+    section_title("🎯", t("weekly_challenge"))
+    glass_card(f"<b>{t('goal_general_health')}:</b> {t('log_water')} 8/8, {t('workout_streak')} 3+ {t('days')}", glow="green")
+
+    section_title("✨", "Premium AI Features")
+    p1, p2 = st.columns(2)
+    with p1:
+        glass_card(
+            f"<h4 style='color:{BLUE};margin-top:0'>🤖 {t('ai_coach_card_title')}</h4>"
+            f"<p style='color:#B3B3B3'>{t('ai_coach_card_body')}</p>",
+            glow="blue",
+        )
+        st.page_link("pages/5_🤖_AI_Coach.py", label=t("chat_with_ai_coach"), icon="🤖")
+    with p2:
+        glass_card(
+            f"<h4 style='color:{GOLD};margin-top:0'>🧬 {t('ai_body_analysis_card_title')}</h4>"
+            f"<p style='color:#B3B3B3'>{t('ai_body_analysis_card_body')}</p>",
+            glow="gold",
+        )
+        st.page_link("pages/1_🧬_Body_Analysis.py", label=t("analyze_my_body"), icon="🧬")
+
+    st.divider()
+    st.caption("Navigate using the sidebar (☰ top-left on mobile) for Workouts, Nutrition, Progress, Profile & Premium.")
+
+
+# ---------------------------------------------------------------- ROUTER ----
+stage = st.session_state["stage"]
+if stage == "splash":
+    render_splash()
+elif stage == "onboarding":
+    render_onboarding()
+elif stage == "auth":
+    render_auth()
+elif stage == "profile_setup":
+    render_profile_setup()
+else:
+    render_dashboard()

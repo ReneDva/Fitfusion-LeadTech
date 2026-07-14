@@ -1,0 +1,77 @@
+import json
+
+import streamlit as st
+
+from fitfusion.config import WORKOUT_LOCATIONS, EXPERIENCE_LEVELS
+from fitfusion.i18n import t
+from fitfusion.nav import require_login
+from fitfusion.styles import section_title, glass_card, badge, empty_state
+from fitfusion import db, workout_engine
+
+st.set_page_config(page_title=f"{t('workout_plan_title')} · FitFusion", page_icon="🏋️", layout="centered")
+user = require_login()
+profile = db.get_profile(user["id"])
+
+st.title(f"🏋️ {t('workout_plan_title')}")
+
+with st.expander(f"⚙️ {t('equipment')} / {t('workout_location')} / {t('workout_days_per_week')}"):
+    location = st.selectbox(t("workout_location"), WORKOUT_LOCATIONS,
+                             index=WORKOUT_LOCATIONS.index(profile["workout_location"] or "home"),
+                             format_func=lambda l: l.title())
+    equipment = st.multiselect(
+        t("equipment"),
+        ["dumbbells", "barbell", "bench", "resistance_band", "pull_up_bar", "machine", "kettlebell", "jump_rope", "bike"],
+        default=json.loads(profile["equipment"] or "[]"),
+    )
+    experience = st.selectbox("Experience Level", EXPERIENCE_LEVELS,
+                               index=EXPERIENCE_LEVELS.index(profile["experience_level"] or "beginner"),
+                               format_func=lambda e: e.title())
+    c1, c2 = st.columns(2)
+    days = c1.slider(t("workout_days_per_week"), 1, 7, int(profile["workout_days_per_week"] or 3))
+    minutes = c2.slider(t("session_minutes"), 15, 90, int(profile["session_minutes"] or 30))
+
+    if st.button(t("regenerate_plan"), type="primary", use_container_width=True):
+        db.update_profile(
+            user["id"], workout_location=location, equipment=json.dumps(equipment),
+            experience_level=experience, workout_days_per_week=days, session_minutes=minutes,
+        )
+        plan_input = dict(
+            fitness_goal=profile["fitness_goal"], experience_level=experience,
+            workout_location=location, equipment=equipment,
+            workout_days_per_week=days, session_minutes=minutes,
+        )
+        plan = workout_engine.generate_plan(plan_input, user["id"])
+        db.save_workout_plan(user["id"], profile["fitness_goal"], plan)
+        st.success(t("success_saved"))
+        st.rerun()
+
+plan_row = db.latest_workout_plan(user["id"])
+if not plan_row:
+    empty_state(t("empty_no_data"))
+    st.stop()
+
+plan = json.loads(plan_row["plan_json"])
+st.caption(f"AI-adapted volume: ×{plan.get('adjustment_factor', 1.0)} · {t('est_calories_burned')}: {plan.get('weekly_est_calories', 0)} {t('kcal')}/week")
+
+day_tabs = st.tabs([d["day"] for d in plan["days"]])
+for tab, day in zip(day_tabs, plan["days"]):
+    with tab:
+        section_title("📅", f"{day['focus']} · {day['duration_min']} min · {day['est_calories']} {t('kcal')}")
+        for ex in day["exercises"]:
+            muscles = ", ".join(ex["muscles"])
+            trackable_badge = badge("🎥 Live-Trackable", "#4CB7C5") if ex.get("trackable") else ""
+            glass_card(
+                f"""
+                <div style='display:flex;justify-content:space-between;align-items:center'>
+                    <b style='font-size:16px'>{ex['name']}</b> {trackable_badge}
+                </div>
+                <p style='color:#B3B3B3;margin:6px 0'>{t('target_muscles')}: {muscles} · {t('difficulty')}: {ex['difficulty'].title()}</p>
+                <p style='margin:0'>
+                    <b>{t('sets')}:</b> {ex['sets']} &nbsp; <b>{t('reps')}:</b> {ex['reps']} &nbsp;
+                    <b>{t('rest')}:</b> {ex['rest_sec']}s &nbsp; <b>{t('est_calories_burned')}:</b> {ex['est_calories']} {t('kcal')}
+                </p>
+                """
+            )
+        if st.button(f"▶️ {t('start_workout')}", key=f"start_{day['day']}", use_container_width=True, type="primary"):
+            st.session_state["trainer_day_exercises"] = day["exercises"]
+            st.switch_page("pages/3_🕺_3D_Trainer.py")
