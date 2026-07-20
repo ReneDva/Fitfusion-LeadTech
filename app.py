@@ -6,6 +6,8 @@ Run with:  streamlit run app.py
 import time
 
 import streamlit as st
+from dotenv import load_dotenv
+load_dotenv()
 
 from fitfusion.config import APP_NAME, SLOGAN, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, GOLD, BLUE
 from fitfusion.i18n import t, current_language
