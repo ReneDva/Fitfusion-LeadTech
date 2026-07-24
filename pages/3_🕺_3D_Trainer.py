@@ -1,4 +1,5 @@
 import json
+import re
 
 import streamlit as st
 
@@ -29,17 +30,27 @@ def render_demo(exercise_id: str, exercise_name: str):
         st.caption(t("demo_not_ready"))
 
 
-def render_tracking(cal_per_min: float, key_prefix: str):
+def parse_target_reps(reps_str: str):
+    numbers = re.findall(r"\d+", reps_str) if reps_str else []
+    return int(numbers[-1]) if numbers else None
+
+
+def render_tracking(cal_per_min: float, key_prefix: str, planned_reps: str = None):
     """Renders the manual rep/duration tracking UI. Returns (reps, duration_min, accuracy)
     ready to be logged by the caller."""
     st.markdown(f"**{t('manual_rep_counter')}**")
     reps_key = f"{key_prefix}_manual_reps"
     if reps_key not in st.session_state:
         st.session_state[reps_key] = 0
+
+    target = parse_target_reps(planned_reps)
+
     mc1, mc2, mc3 = st.columns(3)
     if mc1.button("➖", use_container_width=True, key=f"{key_prefix}_minus"):
         st.session_state[reps_key] = max(0, st.session_state[reps_key] - 1)
-    mc2.markdown(f"<h2 style='text-align:center'>{st.session_state[reps_key]}</h2>", unsafe_allow_html=True)
+    current = st.session_state[reps_key]
+    value_display = f"{current}/{target}" if target else str(current)
+    mc2.markdown(f"<div class='ff-stat-value' style='text-align:center'>{value_display}</div>", unsafe_allow_html=True)
     if mc3.button("➕", use_container_width=True, key=f"{key_prefix}_plus"):
         st.session_state[reps_key] += 1
     duration = st.slider(t("duration") + " (min)", 1, 60, 5, key=f"{key_prefix}_duration")
@@ -81,7 +92,8 @@ if plan and plan["days"]:
     if idx >= len(queue):
         completed = sum(1 for e in queue if e.get("completed"))
         total = len(queue)
-        pct = round(completed / total * 100) if total else 0
+        rep_ratios = [min(1.0, e.get("reps_done", 0) / e.get("reps_planned", 1)) for e in queue]
+        pct = round(sum(rep_ratios) / len(rep_ratios) * 100) if rep_ratios else 0
 
         if pct >= 100:
             st.balloons()
@@ -127,7 +139,7 @@ if plan and plan["days"]:
 
         st.divider()
         cal_per_min = cal_per_min_for(exercise["id"])
-        reps, duration, accuracy = render_tracking(cal_per_min, f"routine_{idx}")
+        reps, duration, accuracy = render_tracking(cal_per_min, f"routine_{idx}", exercise.get("reps"))
 
         st.divider()
         bc1, bc2 = st.columns(2)
@@ -135,6 +147,8 @@ if plan and plan["days"]:
             if st.button(f"⏭ {t('skip_exercise')}", use_container_width=True):
                 queue[idx]["est_calories"] = 0
                 queue[idx]["completed"] = False
+                queue[idx]["reps_done"] = 0
+                queue[idx]["reps_planned"] = parse_target_reps(exercise.get("reps")) or 1
                 st.session_state["trainer_idx"] = idx + 1
                 st.rerun()
         with bc2:
@@ -146,6 +160,8 @@ if plan and plan["days"]:
                 )
                 queue[idx]["est_calories"] = actual_calories
                 queue[idx]["completed"] = reps > 0
+                queue[idx]["reps_done"] = reps
+                queue[idx]["reps_planned"] = parse_target_reps(exercise.get("reps")) or 1
                 st.session_state["trainer_idx"] = idx + 1
                 st.success(t("success_saved"))
                 st.rerun()
