@@ -76,7 +76,7 @@ def adapt_workout_dialog(day_idx: int, day: dict):
             st.session_state["trainer_day_idx"] = day_idx
             del st.session_state[result_key]
             st.session_state["adapt_dialog_day"] = None
-            st.switch_page("pages/3_🕺_3D_Trainer.py")
+            st.switch_page("pages/3_⏱️_Workout_Tracker.py")
         if c2.button(t("cancel"), width='stretch'):
             del st.session_state[result_key]
             st.session_state["adapt_dialog_day"] = None
@@ -114,7 +114,7 @@ for day_idx, (tab, day) in enumerate(zip(day_tabs, plan["days"])):
             st.session_state["trainer_queue"] = day["exercises"]
             st.session_state["trainer_idx"] = 0
             st.session_state["trainer_day_idx"] = day_idx
-            st.switch_page("pages/3_🕺_3D_Trainer.py")
+            st.switch_page("pages/3_⏱️_Workout_Tracker.py")
         if btn_col2.button(f"💬 {t('adapt_workout')}", key=f"adapt_{day['day']}", width='stretch'):
             st.session_state["adapt_dialog_day"] = day_idx
             st.rerun()

@@ -2,7 +2,7 @@
 
 FitFusion is a local, Python-only AI fitness ecosystem: AI Body Analysis, an AI-generated
 workout plan that can be adapted on the fly by an AI Coach (back pain, missing equipment,
-short on time — without touching your saved plan), a 3D exercise trainer with per-exercise
+short on time — without touching your saved plan), a Workout Tracker with per-exercise
 demo videos and live rep/calorie tracking, an AI Nutrition Center (photo/barcode/manual food
 logging), an AI Coach chat, a Progress dashboard, achievements, and a Premium tier preview —
 all in one dark, gold/blue/green "glass" themed app that also works fully in Arabic and
@@ -21,14 +21,15 @@ meal-photo recognition, and the free OpenFoodFacts API for barcode lookups).
 - A free [Google Gemini API key](https://aistudio.google.com/apikey) is optional (only needed
   for AI Coach chat, AI workout adaptation, meal-photo recognition, and AI-written
   body-analysis summaries — everything else works fully offline with a rule-based fallback)
-- No webcam needed — the 3D Trainer uses a manual rep/timer counter plus a curated YouTube
-  demo video per exercise (see Roadmap for why live webcam pose-tracking isn't wired up)
+- No webcam needed — the Workout Tracker uses a manual rep/timer counter plus a curated
+  YouTube demo video per exercise (see Roadmap for why live webcam pose-tracking isn't wired up)
 
 ## 2. Setup
 
 Open a terminal in this folder and run:
 
 **Windows (PowerShell):**
+
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
@@ -36,6 +37,7 @@ pip install -r requirements.txt
 ```
 
 **macOS / Linux:**
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -46,6 +48,7 @@ pip install -r requirements.txt
 
 Create a `.env` file in this folder (there's no `.env.example` template — just create it)
 with:
+
 ```
 GEMMINI_API_KEY=your-key-here
 ```
@@ -79,14 +82,14 @@ the app to a clean slate.
 2. **Profile Setup** — height, weight, age, activity level, goal, equipment, preferred
    language, etc. This immediately triggers your first **AI Body Analysis** and generates
    your first **AI Workout Plan**.
-3. Use the **sidebar** to navigate: Body Analysis, Workouts, 3D Trainer, Nutrition, AI Coach,
+3. Use the **sidebar** to navigate: Body Analysis, Workouts, Workout Tracker, Nutrition, AI Coach,
    Progress, Profile, Premium. Language preference now lives on the **Profile** page (and the
    sign-in page), not the sidebar — the sidebar just shows your account + logout.
 4. On the **Workouts** page, each day has two buttons: **Start Workout**, and **💬 Adapt with
    AI Coach** — describe a constraint ("my back hurts today", "no dumbbells", "short on
    time") and the AI Coach rewrites *just that session* (never your saved weekly plan),
    guaranteeing it never reintroduces an exercise already in that day.
-5. In the **3D Trainer**, each exercise shows its target sets/reps/rest next to a manual
+5. In the **Workout Tracker**, each exercise shows its target sets/reps/rest next to a manual
    rep counter (or a timer, in 5-second steps, for held exercises like planks) and a curated
    demo video. The calorie estimate updates live as you count reps/seconds — it's driven by
    what you actually did, not a guess — and finishing a session with some exercises
@@ -121,7 +124,8 @@ data/
 
 > `fitfusion/pose_detection.py` (mediapipe + streamlit-webrtc live rep counter) and the
 > corresponding `opencv-python-headless` / `mediapipe` / `streamlit-webrtc` / `av` entries in
-> `requirements.txt` are no longer imported anywhere — the 3D Trainer was simplified to a
+> `requirements.txt` are no longer imported anywhere — the trainer page (now "Workout
+> Tracker") was simplified to a
 > manual counter. They're left in place rather than deleted in case live pose tracking comes
 > back; safe to strip out if you want a lighter install.
 
@@ -140,6 +144,7 @@ To let others try the app over a URL instead of running it locally, deploy to
 Streamlit for you. Two things Cloud needs that aren't automatic:
 
 **Dependencies**
+
 - `requirements.txt` — already present, installed automatically via pip.
 - `packages.txt` — apt-level system lib `opencv-python` needs on Cloud's Linux box
   (`libgl1`). Already present.
@@ -147,13 +152,16 @@ Streamlit for you. Two things Cloud needs that aren't automatic:
 **Secrets**
 `.env` is never committed (gitignored) and Cloud doesn't read it. Instead, paste the same
 key/value pairs into the app's **Settings → Secrets** box in TOML format:
+
 ```toml
 GEMMINI_API_KEY = "your-key-here"
 GEMINI_MODEL = "gemini-flash-lite-latest"
 ```
+
 Rotate the key before sharing the deployed URL if it was ever used locally in a shared `.env`.
 
 **Deploy steps**
+
 1. Push this repo to GitHub (`main` branch).
 2. Sign in to [share.streamlit.io](https://share.streamlit.io) with GitHub, authorize the repo.
 3. "Create app" → pick this repo, branch `main`, main file path `app.py`.
@@ -161,6 +169,7 @@ Rotate the key before sharing the deployed URL if it was ever used locally in a 
 5. Deploy.
 
 **Known limitations on Cloud**
+
 - `fitfusion.db` (SQLite) lives on Cloud's ephemeral filesystem — it resets on every reboot
   or redeploy. Fine for a testing pass; not for data anyone needs to keep.
 
@@ -171,15 +180,15 @@ Rotate the key before sharing the deployed URL if it was ever used locally in a 
 This is a full local build of the FitFusion product spec, with a few things intentionally
 simplified for a **local, Python-only, no-payment-processor app**:
 
-| Area | In this build | Full spec |
-|---|---|---|
-| Google / Apple sign-in | Shown, explains it needs a registered OAuth app | Real OAuth |
-| Premium checkout | UI preview, toggles your local plan flag | Real payment processor (Stripe/App Store/Play) |
-| 3D Personal Trainer | Manual rep/timer counter next to a curated YouTube demo per exercise; calorie estimate computed live from reps/seconds actually done | Live webcam pose detection + automatic rep counting (code exists in `pose_detection.py` but is currently disconnected — see Project structure) |
-| Bottom navigation | Streamlit sidebar (collapses to a ☰ menu on narrow screens, tuned for mobile width/wrapping) | Fixed mobile bottom tab bar |
-| Notifications | In-app only, per-session toggle | OS push notifications (needs a native/mobile shell + push service) |
-| Wearable sync (Apple Health, Fitbit, Garmin, etc.) | Not connected | Real device SDK integrations |
-| AI Coach / workout adaptation / meal recognition | Real Gemini calls when `GEMMINI_API_KEY` is set; rule-based fallback otherwise (never blocks the app) | Same, always-on |
+| Area                                               | In this build                                                                                                                        | Full spec                                                                                                                                        |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Google / Apple sign-in                             | Shown, explains it needs a registered OAuth app                                                                                      | Real OAuth                                                                                                                                       |
+| Premium checkout                                   | UI preview, toggles your local plan flag                                                                                             | Real payment processor (Stripe/App Store/Play)                                                                                                   |
+| Workout Tracker                                    | Manual rep/timer counter next to a curated YouTube demo per exercise; calorie estimate computed live from reps/seconds actually done | Live webcam pose detection + automatic rep counting (code exists in`pose_detection.py` but is currently disconnected — see Project structure) |
+| Bottom navigation                                  | Streamlit sidebar (collapses to a ☰ menu on narrow screens, tuned for mobile width/wrapping)                                        | Fixed mobile bottom tab bar                                                                                                                      |
+| Notifications                                      | In-app only, per-session toggle                                                                                                      | OS push notifications (needs a native/mobile shell + push service)                                                                               |
+| Wearable sync (Apple Health, Fitbit, Garmin, etc.) | Not connected                                                                                                                        | Real device SDK integrations                                                                                                                     |
+| AI Coach / workout adaptation / meal recognition   | Real Gemini calls when`GEMMINI_API_KEY` is set; rule-based fallback otherwise (never blocks the app)                               | Same, always-on                                                                                                                                  |
 
 These are natural next steps if this app were wrapped in a native mobile shell (e.g. with
 Capacitor/Flutter) or given a real backend + payment provider — the data model in `db.py` was

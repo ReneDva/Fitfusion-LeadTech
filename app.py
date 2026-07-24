@@ -33,7 +33,7 @@ ONBOARDING_PAGES = [
     ("🤖", "onboarding_title_1", "onboarding_body_1"),
     ("🥗", "onboarding_title_2", "onboarding_body_2"),
     ("🧬", "onboarding_title_3", "onboarding_body_3"),
-    ("🕺", "onboarding_title_4", "onboarding_body_4"),
+    ("⏱️", "onboarding_title_4", "onboarding_body_4"),
     ("📈", "onboarding_title_5", "onboarding_body_5"),
 ]
 

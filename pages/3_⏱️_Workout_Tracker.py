@@ -9,10 +9,10 @@ from fitfusion.styles import section_title, stat_card, glass_card
 from fitfusion import db, videos
 from fitfusion.workout_engine import EXERCISES
 
-st.set_page_config(page_title=f"{t('trainer_title')} · FitFusion", page_icon="🕺", layout="centered")
+st.set_page_config(page_title=f"{t('trainer_title')} · FitFusion", page_icon="⏱️", layout="centered")
 user = require_login()
 
-st.title(f"🕺 {t('trainer_title')}")
+st.title(f"⏱️ {t('trainer_title')}")
 
 
 def cal_per_min_for(exercise_id: str) -> float:
