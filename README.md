@@ -127,6 +127,41 @@ from your OS locale on first load, and switchable anytime from the sidebar. The 
 recipes, and body-analysis narratives reply in your selected language (naturally localized,
 not machine-translated), when AI features are enabled.
 
+## 7. Deploying for testing (Streamlit Community Cloud)
+
+To let others try the app over a URL instead of running it locally, deploy to
+[Streamlit Community Cloud](https://share.streamlit.io) — free, and it handles Python +
+Streamlit for you. Three things Cloud needs that aren't automatic:
+
+**Dependencies**
+- `requirements.txt` — already present, installed automatically via pip.
+- `packages.txt` — apt-level system libs `opencv-python` needs on Cloud's Linux box
+  (`libgl1`, `libglib2.0-0`). Already present; without it the 3D Trainer / Body Analysis
+  camera pages fail to import on Cloud even though they work locally.
+
+**Secrets**
+`.env` is never committed (gitignored) and Cloud doesn't read it. Instead, paste the same
+key/value pairs into the app's **Settings → Secrets** box in TOML format:
+```toml
+GEMMINI_API_KEY = "your-key-here"
+GEMINI_MODEL = "gemini-flash-lite-latest"
+```
+Rotate the key before sharing the deployed URL if it was ever used locally in a shared `.env`.
+
+**Deploy steps**
+1. Push this repo to GitHub (`main` branch).
+2. Sign in to [share.streamlit.io](https://share.streamlit.io) with GitHub, authorize the repo.
+3. "Create app" → pick this repo, branch `main`, main file path `app.py`.
+4. Advanced settings → Secrets → paste the block above.
+5. Deploy. First build takes a few minutes (mediapipe/opencv are large wheels).
+
+**Known limitations on Cloud**
+- `fitfusion.db` (SQLite) lives on Cloud's ephemeral filesystem — it resets on every reboot
+  or redeploy. Fine for a testing pass; not for data anyone needs to keep.
+- `streamlit-webrtc` camera features need HTTPS (Cloud provides this) and browser camera
+  permission; STUN/TURN through a restrictive corporate firewall can occasionally fail to
+  connect the video stream.
+
 ---
 
 ## Roadmap / known simplifications
