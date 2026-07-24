@@ -73,6 +73,93 @@ def _filter_exercises(equipment: list[str], location: str):
     ]
 
 
+def build_exercise(ex_id: str, sets: int, rest_sec: int, reps: str = None) -> dict:
+    """Builds a display/session exercise dict (with calorie estimate) from a catalog id.
+    Shared by plan generation and session-only adaptation so calorie math stays consistent."""
+    ex = next((e for e in EXERCISES if e["id"] == ex_id), None)
+    if not ex:
+        return None
+    if ex.get("time_based"):
+        reps_display = "30-45 sec"
+        est_minutes = sets * 0.75
+    else:
+        reps_display = reps or "10-12"
+        avg_reps = 12
+        est_minutes = sets * (avg_reps * 3 / 60 + rest_sec / 60)
+    calories = round(est_minutes * ex["cal_per_min"])
+    return {
+        "id": ex["id"],
+        "name": ex["name"],
+        "sets": sets,
+        "reps": reps_display,
+        "rest_sec": rest_sec,
+        "muscles": ex["muscles"],
+        "difficulty": ex["difficulty"],
+        "est_calories": calories,
+        "trackable": ex.get("trackable", False),
+    }
+
+
+_AVOID_FOR_BACK_PAIN = {"deadlift", "barbell_squat", "kettlebell_swing", "burpee", "russian_twist", "mountain_climber"}
+_EQUIPMENT_KEYWORDS = ["dumbbells", "barbell", "bench", "resistance_band", "pull_up_bar", "machine", "kettlebell", "jump_rope", "bike"]
+_BACK_PAIN_TERMS = ["back pain", "back hurt", "hurt my back", "lower back", "sore back", "back injury", "my back"]
+_TIME_TERMS = ["less time", "short on time", "shorter", "in a hurry", "no time", "quick workout", "running late"]
+
+
+def adapt_day_offline(day_exercises: list[dict], request: str, equipment: list[str], location: str) -> tuple[list[dict], str]:
+    """Rule-based, session-only workout adaptation used when no Gemini key is configured
+    (or the AI call fails). Swaps out unsafe/unavailable exercises and trims for time —
+    never touches the saved weekly plan."""
+    request_l = (request or "").lower()
+    pool = _filter_exercises(equipment, location)
+    missing_equipment = {kw for kw in _EQUIPMENT_KEYWORDS if kw in request_l or kw.replace("_", " ") in request_l}
+    avoid_back = any(term in request_l for term in _BACK_PAIN_TERMS)
+    want_shorter = any(term in request_l for term in _TIME_TERMS)
+
+    notes = []
+    used_ids = set()
+    new_exercises = []
+    for ex in day_exercises:
+        source = next((e for e in EXERCISES if e["id"] == ex["id"]), None)
+        needs_swap = source is not None and (
+            (avoid_back and source["id"] in _AVOID_FOR_BACK_PAIN)
+            or (missing_equipment and set(source["equipment"]) & missing_equipment)
+        )
+        if needs_swap:
+            candidates = [
+                c for c in pool
+                if c["category"] == source["category"] and c["id"] not in used_ids
+                and c["id"] not in _AVOID_FOR_BACK_PAIN
+                and not (set(c["equipment"]) & missing_equipment)
+            ]
+            if candidates:
+                replacement = candidates[0]
+                used_ids.add(replacement["id"])
+                new_exercises.append(build_exercise(replacement["id"], ex["sets"], ex["rest_sec"], ex["reps"]))
+                notes.append(f"Swapped {source['name']} for {replacement['name']}")
+            else:
+                notes.append(f"Dropped {source['name']} (no safe alternative on hand)")
+            continue
+        used_ids.add(ex["id"])
+        new_exercises.append(dict(ex))
+
+    if want_shorter and new_exercises:
+        keep_n = max(2, round(len(new_exercises) * 0.7))
+        new_exercises = [
+            build_exercise(e["id"], max(2, e["sets"] - 1), max(20, e["rest_sec"] - 15), e["reps"])
+            for e in new_exercises[:keep_n]
+        ]
+        notes.append(f"Trimmed to {len(new_exercises)} exercises with fewer sets and shorter rest to save time")
+
+    if not new_exercises:
+        new_exercises = day_exercises
+        notes = ["Couldn't find a safe adaptation — showing your original session"]
+    if not notes:
+        notes = ["No changes needed, this session already fits your request"]
+
+    return new_exercises, ". ".join(notes) + "."
+
+
 def generate_plan(profile: dict, user_id: int = None) -> dict:
     """profile: fitness_goal, experience_level, workout_location, equipment(list),
     workout_days_per_week, session_minutes."""
@@ -107,27 +194,9 @@ def generate_plan(profile: dict, user_id: int = None) -> dict:
         day_exercises = []
         day_calories = 0
         for ex in chosen:
-            sets = scheme["sets"]
-            if ex.get("time_based"):
-                reps_display = "30-45 sec"
-                est_minutes = sets * 0.75
-            else:
-                reps_display = scheme["reps"]
-                avg_reps = 12
-                est_minutes = sets * (avg_reps * 3 / 60 + scheme["rest_sec"] / 60)
-            calories = round(est_minutes * ex["cal_per_min"])
-            day_calories += calories
-            day_exercises.append({
-                "id": ex["id"],
-                "name": ex["name"],
-                "sets": sets,
-                "reps": reps_display,
-                "rest_sec": scheme["rest_sec"],
-                "muscles": ex["muscles"],
-                "difficulty": ex["difficulty"],
-                "est_calories": calories,
-                "trackable": ex.get("trackable", False),
-            })
+            built = build_exercise(ex["id"], scheme["sets"], scheme["rest_sec"], scheme["reps"])
+            day_calories += built["est_calories"]
+            day_exercises.append(built)
         total_calories += day_calories
         plan_days.append({
             "day": day_names[i % 7],

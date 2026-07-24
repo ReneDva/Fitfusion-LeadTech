@@ -3,10 +3,10 @@ import json
 import streamlit as st
 
 from fitfusion.config import WORKOUT_LOCATIONS, EXPERIENCE_LEVELS
-from fitfusion.i18n import t
+from fitfusion.i18n import t, current_language
 from fitfusion.nav import require_login
 from fitfusion.styles import section_title, glass_card, badge, empty_state
-from fitfusion import db, workout_engine
+from fitfusion import db, workout_engine, ai
 
 st.set_page_config(page_title=f"{t('workout_plan_title')} · FitFusion", page_icon="🏋️", layout="centered")
 user = require_login()
@@ -47,6 +47,36 @@ with st.expander(f"⚙️ {t('equipment')} / {t('workout_location')} / {t('worko
         st.success(t("success_saved"))
         st.rerun()
 
+@st.dialog(t("adapt_workout"))
+def adapt_workout_dialog(day_idx: int, day: dict):
+    result_key = f"adapted_day_{day_idx}"
+    st.caption(t("adapt_workout_hint"))
+    request = st.text_area(t("adapt_workout_placeholder"), key=f"adapt_request_{day_idx}", height=90)
+
+    if st.button(t("adapt_workout_submit"), type="primary", use_container_width=True, disabled=not request.strip()):
+        with st.spinner(t("ai_thinking")):
+            st.session_state[result_key] = ai.adapt_workout(day["exercises"], request, current_language(), equipment, location)
+        st.rerun()
+
+    adapted = st.session_state.get(result_key)
+    if adapted:
+        if adapted["note"]:
+            st.success(adapted["note"])
+        for ex in adapted["exercises"]:
+            st.markdown(f"- **{ex['name']}** — {t('sets')}: {ex['sets']} × {ex['reps']}, {t('rest')}: {ex['rest_sec']}s")
+
+        c1, c2 = st.columns(2)
+        if c1.button(f"▶️ {t('start_adapted_workout')}", type="primary", use_container_width=True):
+            st.session_state["trainer_queue"] = adapted["exercises"]
+            st.session_state["trainer_idx"] = 0
+            st.session_state["trainer_day_idx"] = day_idx
+            del st.session_state[result_key]
+            st.switch_page("pages/3_🕺_3D_Trainer.py")
+        if c2.button(t("cancel"), use_container_width=True):
+            del st.session_state[result_key]
+            st.rerun()
+
+
 plan_row = db.latest_workout_plan(user["id"])
 if not plan_row:
     empty_state(t("empty_no_data"))
@@ -74,8 +104,11 @@ for day_idx, (tab, day) in enumerate(zip(day_tabs, plan["days"])):
                 </p>
                 """
             )
-        if st.button(f"▶️ {t('start_workout')}", key=f"start_{day['day']}", use_container_width=True, type="primary"):
+        btn_col1, btn_col2 = st.columns(2)
+        if btn_col1.button(f"▶️ {t('start_workout')}", key=f"start_{day['day']}", use_container_width=True, type="primary"):
             st.session_state["trainer_queue"] = day["exercises"]
             st.session_state["trainer_idx"] = 0
             st.session_state["trainer_day_idx"] = day_idx
             st.switch_page("pages/3_🕺_3D_Trainer.py")
+        if btn_col2.button(f"💬 {t('adapt_workout')}", key=f"adapt_{day['day']}", use_container_width=True):
+            adapt_workout_dialog(day_idx, day)
