@@ -76,6 +76,10 @@ def inject_global_css():
             [data-testid="stSidebar"] .stButton button {{
                 font-size: 13.5px !important;
             }}
+
+            .ff-stat-icon, .ff-stat-value, .ff-stat-label {{
+                text-align: center !important;
+            }}
         }}
         h1, h2, h3, h4 {{
             font-weight: 800 !important;

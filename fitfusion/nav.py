@@ -27,23 +27,27 @@ def render_sidebar():
             plan_label = t("premium_plan") if sub and sub["plan"] == "premium" else t("free_plan")
             st.caption(f"{user['name']} · {plan_label}")
 
-        lang_codes = list(SUPPORTED_LANGUAGES.keys())
-        current = current_language()
-        labels = [f"{SUPPORTED_LANGUAGES[c]['flag']} {SUPPORTED_LANGUAGES[c]['label']}" for c in lang_codes]
-        idx = lang_codes.index(current) if current in lang_codes else 0
-        choice = st.selectbox(t("language_settings"), labels, index=idx, key="lang_selector")
-        chosen_code = lang_codes[labels.index(choice)]
-        if chosen_code != current:
-            set_language(chosen_code)
-            if user_id:
-                update_profile(user_id, language=chosen_code)
-            st.rerun()
-
         st.divider()
         if user_id and st.button(t("logout"), width='stretch'):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
+
+
+def render_language_picker(user_id: int = None, key: str = "lang_selector"):
+    """Language dropdown, reused on the pre-login auth screen (session-only) and the
+    logged-in Profile page (also persists the choice to the user's saved profile)."""
+    lang_codes = list(SUPPORTED_LANGUAGES.keys())
+    current = current_language()
+    labels = [f"{SUPPORTED_LANGUAGES[c]['flag']} {SUPPORTED_LANGUAGES[c]['label']}" for c in lang_codes]
+    idx = lang_codes.index(current) if current in lang_codes else 0
+    choice = st.selectbox(t("language_settings"), labels, index=idx, key=key)
+    chosen_code = lang_codes[labels.index(choice)]
+    if chosen_code != current:
+        set_language(chosen_code)
+        if user_id:
+            update_profile(user_id, language=chosen_code)
+        st.rerun()
 
 
 def current_user_and_profile():

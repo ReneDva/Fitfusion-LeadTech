@@ -2,7 +2,7 @@ import streamlit as st
 
 from fitfusion.config import ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES
 from fitfusion.i18n import t
-from fitfusion.nav import require_login
+from fitfusion.nav import require_login, render_language_picker
 from fitfusion.styles import section_title, stat_card, glass_card
 from fitfusion import db, achievements as ach
 
@@ -64,6 +64,9 @@ n1, n2, n3 = st.columns(3)
 n1.checkbox(t("workout_reminders"), value=True, key="notif_workout")
 n2.checkbox(t("meal_reminders"), value=True, key="notif_meals")
 n3.checkbox(t("water_reminders"), value=True, key="notif_water")
+
+section_title("🌐", t("language_settings"))
+render_language_picker(user_id=user["id"], key="profile_lang_selector")
 
 section_title("🔒", t("privacy"))
 st.caption(t("privacy_note"))

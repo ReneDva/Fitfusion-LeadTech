@@ -12,7 +12,7 @@ load_dotenv()
 from fitfusion.config import APP_NAME, SLOGAN, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, GOLD, BLUE
 from fitfusion.i18n import t, current_language, set_language
 from fitfusion.styles import app_shell_open, glass_card, stat_card, section_title, gold_glow_logo, LOGO_PATH
-from fitfusion.nav import render_sidebar
+from fitfusion.nav import render_sidebar, render_language_picker
 from fitfusion import db, auth, calculations, workout_engine
 from fitfusion.charts import progress_ring
 
@@ -88,6 +88,10 @@ def render_onboarding():
 # ------------------------------------------------------------------ AUTH ----
 def render_auth():
     st.markdown(gold_glow_logo(80), unsafe_allow_html=True)
+    _, lang_col, _ = st.columns([1, 2, 1])
+    with lang_col:
+        render_language_picker(key="auth_lang_selector")
+
     tab_login, tab_signup = st.tabs([t("login_button"), t("signup_button")])
 
     with tab_login:
