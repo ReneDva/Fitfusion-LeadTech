@@ -1,15 +1,13 @@
 """FitFusion — AI Fitness & Nutrition Platform.
 
-Entry point: splash -> onboarding -> auth -> profile setup -> dashboard (Home).
+Entry point: auth -> profile setup -> dashboard (Home).
 Run with:  streamlit run app.py
 """
-import time
-
 import streamlit as st
 from dotenv import load_dotenv
 load_dotenv()
 
-from fitfusion.config import APP_NAME, SLOGAN, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, GOLD, BLUE
+from fitfusion.config import APP_NAME, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, SUPPORTED_LANGUAGES, GOLD, BLUE
 from fitfusion.i18n import t, current_language, set_language
 from fitfusion.styles import app_shell_open, glass_card, stat_card, section_title, gold_glow_logo, LOGO_PATH
 from fitfusion.nav import render_sidebar, render_language_picker
@@ -22,30 +20,15 @@ if LOGO_PATH.exists():
     _page_icon = Image.open(LOGO_PATH)
 
 if "stage" not in st.session_state:
-    st.session_state["stage"] = "splash"
+    st.session_state["stage"] = "auth"
 
 # Sidebar nav is only useful once there's somewhere to navigate to — keep it out of the
-# way during splash/onboarding/auth, but default it open once the user is past login.
+# way during auth, but default it open once the user is past login.
 _sidebar_state = "expanded" if st.session_state["stage"] in ("profile_setup", "dashboard") else "collapsed"
 st.set_page_config(page_title=APP_NAME, page_icon=_page_icon, layout="centered", initial_sidebar_state=_sidebar_state)
 app_shell_open()
-if "onboarding_step" not in st.session_state:
-    st.session_state["onboarding_step"] = 0
 
-
-# ---------------------------------------------------------------- SPLASH ----
-def render_splash():
-    st.markdown(gold_glow_logo(140), unsafe_allow_html=True)
-    st.markdown(f"<h1 style='text-align:center'>{APP_NAME}</h1>", unsafe_allow_html=True)
-    lang = current_language()
-    st.markdown(f"<p style='text-align:center;color:{BLUE};font-weight:600'>{SLOGAN.get(lang, SLOGAN['en'])}</p>", unsafe_allow_html=True)
-    with st.spinner(t("loading")):
-        time.sleep(1.1)
-    st.session_state["stage"] = "onboarding"
-    st.rerun()
-
-
-# ------------------------------------------------------------ ONBOARDING ----
+# Benefit blurbs shown on the signup tab (was previously a multi-screen onboarding tour).
 ONBOARDING_PAGES = [
     ("🤖", "onboarding_title_1", "onboarding_body_1"),
     ("🥗", "onboarding_title_2", "onboarding_body_2"),
@@ -53,36 +36,6 @@ ONBOARDING_PAGES = [
     ("🕺", "onboarding_title_4", "onboarding_body_4"),
     ("📈", "onboarding_title_5", "onboarding_body_5"),
 ]
-
-
-def render_onboarding():
-    step = st.session_state["onboarding_step"]
-    icon, title_key, body_key = ONBOARDING_PAGES[step]
-    st.markdown(f"<div style='text-align:center;font-size:90px;margin-top:30px'>{icon}</div>", unsafe_allow_html=True)
-    st.markdown(f"<h2 style='text-align:center'>{t(title_key)}</h2>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center;color:#B3B3B3;font-size:16px'>{t(body_key)}</p>", unsafe_allow_html=True)
-
-    dots = "".join(
-        f'<span style="display:inline-block;width:{10 if i==step else 7}px;height:{10 if i==step else 7}px;'
-        f'border-radius:50%;margin:0 4px;background:{GOLD if i==step else "#333"}"></span>'
-        for i in range(len(ONBOARDING_PAGES))
-    )
-    st.markdown(f"<div style='text-align:center;margin:20px 0'>{dots}</div>", unsafe_allow_html=True)
-
-    is_last = step == len(ONBOARDING_PAGES) - 1
-    c1, c2 = st.columns(2)
-    with c1:
-        if not is_last and st.button(t("skip"), width='stretch', type="secondary"):
-            st.session_state["stage"] = "auth"
-            st.rerun()
-    with c2:
-        label = t("start_journey") if is_last else t("next")
-        if st.button(label, width='stretch', type="primary"):
-            if is_last:
-                st.session_state["stage"] = "auth"
-            else:
-                st.session_state["onboarding_step"] += 1
-            st.rerun()
 
 
 # ------------------------------------------------------------------ AUTH ----
@@ -160,6 +113,11 @@ def render_profile_setup():
     st.header(t("profile_setup_title"))
     st.caption(t("profile_setup_subtitle"))
     with st.form("profile_setup_form"):
+        lang_codes = list(SUPPORTED_LANGUAGES.keys())
+        lang_labels = [f"{SUPPORTED_LANGUAGES[c]['flag']} {SUPPORTED_LANGUAGES[c]['label']}" for c in lang_codes]
+        lang_idx = lang_codes.index(current_language()) if current_language() in lang_codes else 0
+        language_choice = st.selectbox(t("language_settings"), lang_labels, index=lang_idx)
+
         c1, c2 = st.columns(2)
         height = c1.number_input(t("height_cm"), 100.0, 250.0, 170.0)
         weight = c2.number_input(t("weight_kg"), 30.0, 300.0, 70.0)
@@ -193,13 +151,17 @@ def render_profile_setup():
         submitted = st.form_submit_button(t("save_continue"), width='stretch', type="primary")
 
     if submitted:
+        chosen_language = lang_codes[lang_labels.index(language_choice)]
+        set_language(chosen_language)
+
         profile_fields = dict(
             height_cm=height, weight_kg=weight, age=int(age), gender=gender,
             activity_level=activity, fitness_goal=goal, experience_level=experience,
             body_fat_pct=body_fat or None, muscle_mass_kg=muscle_mass or None,
             dietary_preference=dietary, food_allergies=allergies, medical_limitations=medical,
             workout_location=location, equipment=str(equipment).replace("'", '"'),
-            workout_days_per_week=days_per_week, session_minutes=session_minutes, onboarded=1,
+            workout_days_per_week=days_per_week, session_minutes=session_minutes,
+            language=chosen_language, onboarded=1,
         )
         db.update_profile(st.session_state["user_id"], **profile_fields)
 
@@ -291,11 +253,7 @@ def render_dashboard():
 
 # ---------------------------------------------------------------- ROUTER ----
 stage = st.session_state["stage"]
-if stage == "splash":
-    render_splash()
-elif stage == "onboarding":
-    render_onboarding()
-elif stage == "auth":
+if stage == "auth":
     render_auth()
 elif stage == "profile_setup":
     render_profile_setup()

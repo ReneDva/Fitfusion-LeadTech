@@ -40,6 +40,15 @@ def parse_target_reps(reps_str: str):
     return int(numbers[-1]) if numbers else None
 
 
+SEC_PER_REP = 3  # matches the estimate workout_engine uses when generating a plan
+
+
+def calories_from_effort(units_done: int, cal_per_min: float, time_based: bool) -> float:
+    """units_done is seconds held (time-based exercises) or reps completed (everything else)."""
+    minutes_equiv = (units_done / 60) if time_based else (units_done * SEC_PER_REP / 60)
+    return round(minutes_equiv * cal_per_min, 1)
+
+
 def render_tracking(
     cal_per_min: float, key_prefix: str, planned_reps: str = None,
     sets: int = None, rest_sec: int = None, time_based: bool = False,
@@ -62,17 +71,23 @@ def render_tracking(
     mc1, mc2, mc3 = st.columns(3)
     if mc1.button("➖", width='stretch', key=f"{key_prefix}_minus"):
         st.session_state[reps_key] = max(0, st.session_state[reps_key] - step)
+    if mc3.button("➕", width='stretch', key=f"{key_prefix}_plus"):
+        st.session_state[reps_key] += step
     current = st.session_state[reps_key]
     value_display = f"{current}/{target}{unit}" if target else f"{current}{unit}"
     mc2.markdown(f"<div class='ff-stat-value' style='text-align:center'>{value_display}</div>", unsafe_allow_html=True)
-    if mc3.button("➕", width='stretch', key=f"{key_prefix}_plus"):
-        st.session_state[reps_key] += step
     duration = st.slider(t("duration") + " (min)", 1, 60, 5, key=f"{key_prefix}_duration")
 
-    calc_calories = round(duration * cal_per_min, 1)
+    # Live: recalculates on every ➕/➖ click since Streamlit reruns the script each time.
+    calc_calories = calories_from_effort(current, cal_per_min, time_based)
     running_total = round(session_calories_so_far + calc_calories, 1)
-    calc_detail = t("calorie_calc_detail", duration=duration, rate=cal_per_min, calc=calc_calories, total=running_total)
-    stat_card("🔥", t("calories_burned"), f"{calc_calories} {t('kcal')}", sub=calc_detail)
+    calc_line = (
+        t("calorie_calc_time", seconds=current, rate=cal_per_min, calc=calc_calories)
+        if time_based else
+        t("calorie_calc_reps", reps=current, rate=cal_per_min, calc=calc_calories)
+    )
+    total_line = t("session_total_so_far", total=running_total)
+    stat_card("🔥", t("calories_burned"), f"{calc_calories} {t('kcal')}", sub=f"{calc_line}<br>{total_line}")
     return st.session_state[reps_key], duration, None
 
 
@@ -175,7 +190,7 @@ if plan and plan["days"]:
                 st.rerun()
         with bc2:
             if st.button(f"✅ {t('mark_done_next')}", width='stretch', type="primary"):
-                actual_calories = round(duration * cal_per_min, 1) if reps > 0 else 0
+                actual_calories = calories_from_effort(reps, cal_per_min, is_time_based(exercise["id"]))
                 db.log_workout(
                     user["id"], exercise["name"], sets=exercise.get("sets", 1), reps=reps,
                     duration_min=duration, calories_burned=actual_calories, accuracy_score=accuracy,
@@ -206,7 +221,9 @@ else:
     if st.button(f"✅ {t('start_workout')}", width='stretch', type="primary"):
         db.log_workout(
             user["id"], exercise["name"], sets=1, reps=reps,
-            duration_min=duration, calories_burned=round(duration * exercise["cal_per_min"], 1), accuracy_score=accuracy,
+            duration_min=duration,
+            calories_burned=calories_from_effort(reps, exercise["cal_per_min"], exercise.get("time_based", False)),
+            accuracy_score=accuracy,
         )
         st.success(t("success_saved"))
         st.balloons()

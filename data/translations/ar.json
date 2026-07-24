@@ -268,7 +268,9 @@
   "coach_cue": "نصيحة المدرب",
   "manual_rep_counter": "عداد التكرارات اليدوي",
   "manual_timer_counter": "مؤقت يدوي (ثانية)",
-  "calorie_calc_detail": "{duration} دقيقة × {rate} سعرة/دقيقة = {calc} سعرة · إجمالي الجلسة حتى الآن: {total} سعرة",
+  "calorie_calc_reps": "{reps} تكرار × {rate} سعرة/دقيقة ≈ {calc} سعرة",
+  "calorie_calc_time": "{seconds} ثانية × {rate} سعرة/دقيقة ≈ {calc} سعرة",
+  "session_total_so_far": "إجمالي الجلسة حتى الآن: {total} سعرة",
   "use_camera_toggle": "استخدم تتبع الكاميرا المباشر (اختياري)",
 
   "analyze": "تحليل",
