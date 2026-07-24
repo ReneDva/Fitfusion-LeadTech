@@ -1,12 +1,11 @@
 import json
-import time
 
 import streamlit as st
 
 from fitfusion.i18n import t
 from fitfusion.nav import require_login
 from fitfusion.styles import section_title, stat_card, glass_card
-from fitfusion import db, pose_detection, videos
+from fitfusion import db, videos
 from fitfusion.workout_engine import EXERCISES
 
 st.set_page_config(page_title=f"{t('trainer_title')} · FitFusion", page_icon="🕺", layout="centered")
@@ -30,64 +29,9 @@ def render_demo(exercise_id: str, exercise_name: str):
         st.caption(t("demo_not_ready"))
 
 
-def render_tracking(exercise_id: str, trackable: bool, cal_per_min: float, key_prefix: str):
-    """Renders the camera-optional / manual tracking UI. Returns (reps, duration_min, accuracy)
-    reflecting the current live values, ready to be logged by the caller."""
-    use_camera = False
-    if pose_detection.POSE_AVAILABLE and trackable:
-        use_camera = st.toggle(f"📷 {t('use_camera_toggle')}", value=False, key=f"{key_prefix}_camera_toggle")
-    elif not trackable:
-        st.caption(t("camera_not_trackable"))
-    else:
-        st.warning(t("camera_unavailable"))
-
-    start_key = f"{key_prefix}_start_time"
-    if start_key not in st.session_state:
-        st.session_state[start_key] = None
-
-    if use_camera:
-        from streamlit_webrtc import webrtc_streamer, RTCConfiguration
-
-        RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-        ctx = webrtc_streamer(
-            key=f"{key_prefix}_webrtc",
-            video_processor_factory=lambda: pose_detection.RepCounterProcessor(exercise_id),
-            rtc_configuration=RTC_CONFIG,
-            media_stream_constraints={"video": True, "audio": False},
-        )
-        if ctx.video_processor:
-            ctx.video_processor.set_exercise(exercise_id)
-            if ctx.state.playing and st.session_state[start_key] is None:
-                st.session_state[start_key] = time.time()
-
-        metrics_ph = st.empty()
-
-        @st.fragment(run_every=1)
-        def live_stats():
-            elapsed_min = 0.0
-            reps = 0
-            accuracy = 0.0
-            if ctx.state.playing and ctx.video_processor and st.session_state[start_key]:
-                snap = ctx.video_processor.snapshot()
-                reps, accuracy = snap["reps"], snap["accuracy"]
-                elapsed_min = (time.time() - st.session_state[start_key]) / 60
-            calories = round(elapsed_min * cal_per_min, 1)
-            with metrics_ph.container():
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric(t("rep_counter"), reps)
-                m2.metric(t("accuracy_score"), f"{accuracy}%")
-                m3.metric(t("workout_timer"), f"{elapsed_min:.1f} min")
-                m4.metric(t("calories_burned"), f"{calories} {t('kcal')}")
-
-        live_stats()
-
-        reps, accuracy = 0, None
-        if ctx.video_processor:
-            snap = ctx.video_processor.snapshot()
-            reps, accuracy = snap["reps"], snap["accuracy"]
-        duration = round((time.time() - st.session_state[start_key]) / 60, 1) if st.session_state[start_key] else 0.0
-        return reps, duration, accuracy
-
+def render_tracking(cal_per_min: float, key_prefix: str):
+    """Renders the manual rep/duration tracking UI. Returns (reps, duration_min, accuracy)
+    ready to be logged by the caller."""
     st.markdown(f"**{t('manual_rep_counter')}**")
     reps_key = f"{key_prefix}_manual_reps"
     if reps_key not in st.session_state:
@@ -135,16 +79,33 @@ if plan and plan["days"]:
     st.markdown(f"<p style='color:#B3B3B3'>{strip}</p>", unsafe_allow_html=True)
 
     if idx >= len(queue):
-        st.balloons()
+        completed = sum(1 for e in queue if e.get("completed"))
+        total = len(queue)
+        pct = round(completed / total * 100) if total else 0
+
+        if pct >= 100:
+            st.balloons()
+            icon, glow = "🎉", "gold"
+            title, body = t("workout_complete_title"), t("workout_complete_body")
+        elif pct >= 75:
+            icon, glow = "💪", "gold"
+            title, body = t("workout_partial_title", pct=pct), t("workout_partial_body_high")
+        elif pct >= 40:
+            icon, glow = "🙂", "blue"
+            title, body = t("workout_partial_title", pct=pct), t("workout_partial_body_mid")
+        else:
+            icon, glow = "🌱", ""
+            title, body = t("workout_partial_title", pct=pct), t("workout_partial_body_low")
+
         glass_card(
-            f"<div style='text-align:center'><div style='font-size:44px'>🎉</div>"
-            f"<h2>{t('workout_complete_title')}</h2><p>{t('workout_complete_body')}</p></div>",
-            glow="gold",
+            f"<div style='text-align:center'><div style='font-size:44px'>{icon}</div>"
+            f"<h2>{title}</h2><p>{body}</p></div>",
+            glow=glow,
         )
         total_calories = sum(e.get("est_calories", 0) for e in queue)
         c1, c2 = st.columns(2)
         with c1:
-            stat_card("💪", t("exercises_completed"), str(len(queue)))
+            stat_card("💪", t("exercises_completed"), f"{completed}/{total}")
         with c2:
             stat_card("🔥", t("calories_burned"), f"{total_calories} {t('kcal')}")
         cc1, cc2 = st.columns(2)
@@ -165,22 +126,26 @@ if plan and plan["days"]:
         render_demo(exercise["id"], exercise["name"])
 
         st.divider()
-        section_title("📷", t("start_camera"))
         cal_per_min = cal_per_min_for(exercise["id"])
-        reps, duration, accuracy = render_tracking(exercise["id"], exercise.get("trackable", False), cal_per_min, f"routine_{idx}")
+        reps, duration, accuracy = render_tracking(cal_per_min, f"routine_{idx}")
 
         st.divider()
         bc1, bc2 = st.columns(2)
         with bc1:
             if st.button(f"⏭ {t('skip_exercise')}", use_container_width=True):
+                queue[idx]["est_calories"] = 0
+                queue[idx]["completed"] = False
                 st.session_state["trainer_idx"] = idx + 1
                 st.rerun()
         with bc2:
             if st.button(f"✅ {t('mark_done_next')}", use_container_width=True, type="primary"):
+                actual_calories = round(duration * cal_per_min, 1) if reps > 0 else 0
                 db.log_workout(
                     user["id"], exercise["name"], sets=exercise.get("sets", 1), reps=reps,
-                    duration_min=duration, calories_burned=round(duration * cal_per_min, 1), accuracy_score=accuracy,
+                    duration_min=duration, calories_burned=actual_calories, accuracy_score=accuracy,
                 )
+                queue[idx]["est_calories"] = actual_calories
+                queue[idx]["completed"] = reps > 0
                 st.session_state["trainer_idx"] = idx + 1
                 st.success(t("success_saved"))
                 st.rerun()
@@ -198,8 +163,7 @@ else:
     render_demo(exercise["id"], exercise["name"])
 
     st.divider()
-    section_title("📷", t("start_camera"))
-    reps, duration, accuracy = render_tracking(exercise["id"], exercise.get("trackable", False), exercise["cal_per_min"], "free")
+    reps, duration, accuracy = render_tracking(exercise["cal_per_min"], "free")
 
     if st.button(f"✅ {t('start_workout')}", use_container_width=True, type="primary"):
         db.log_workout(

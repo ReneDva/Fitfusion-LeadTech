@@ -5,7 +5,7 @@ import streamlit as st
 from fitfusion.config import WORKOUT_LOCATIONS, EXPERIENCE_LEVELS
 from fitfusion.i18n import t, current_language
 from fitfusion.nav import require_login
-from fitfusion.styles import section_title, glass_card, badge, empty_state
+from fitfusion.styles import section_title, glass_card, empty_state
 from fitfusion import db, workout_engine, ai
 
 st.set_page_config(page_title=f"{t('workout_plan_title')} · FitFusion", page_icon="🏋️", layout="centered")
@@ -47,6 +47,10 @@ with st.expander(f"⚙️ {t('equipment')} / {t('workout_location')} / {t('worko
         st.success(t("success_saved"))
         st.rerun()
 
+if "adapt_dialog_day" not in st.session_state:
+    st.session_state["adapt_dialog_day"] = None
+
+
 @st.dialog(t("adapt_workout"))
 def adapt_workout_dialog(day_idx: int, day: dict):
     result_key = f"adapted_day_{day_idx}"
@@ -71,9 +75,11 @@ def adapt_workout_dialog(day_idx: int, day: dict):
             st.session_state["trainer_idx"] = 0
             st.session_state["trainer_day_idx"] = day_idx
             del st.session_state[result_key]
+            st.session_state["adapt_dialog_day"] = None
             st.switch_page("pages/3_🕺_3D_Trainer.py")
         if c2.button(t("cancel"), use_container_width=True):
             del st.session_state[result_key]
+            st.session_state["adapt_dialog_day"] = None
             st.rerun()
 
 
@@ -91,11 +97,10 @@ for day_idx, (tab, day) in enumerate(zip(day_tabs, plan["days"])):
         section_title("📅", f"{day['focus']} · {day['duration_min']} min · {day['est_calories']} {t('kcal')}")
         for ex in day["exercises"]:
             muscles = ", ".join(ex["muscles"])
-            trackable_badge = badge("🎥 Live-Trackable", "#4CB7C5") if ex.get("trackable") else ""
             glass_card(
                 f"""
                 <div style='display:flex;justify-content:space-between;align-items:center'>
-                    <b style='font-size:16px'>{ex['name']}</b> {trackable_badge}
+                    <b style='font-size:16px'>{ex['name']}</b>
                 </div>
                 <p style='color:#B3B3B3;margin:6px 0'>{t('target_muscles')}: {muscles} · {t('difficulty')}: {ex['difficulty'].title()}</p>
                 <p style='margin:0'>
@@ -111,4 +116,9 @@ for day_idx, (tab, day) in enumerate(zip(day_tabs, plan["days"])):
             st.session_state["trainer_day_idx"] = day_idx
             st.switch_page("pages/3_🕺_3D_Trainer.py")
         if btn_col2.button(f"💬 {t('adapt_workout')}", key=f"adapt_{day['day']}", use_container_width=True):
-            adapt_workout_dialog(day_idx, day)
+            st.session_state["adapt_dialog_day"] = day_idx
+            st.rerun()
+
+open_day_idx = st.session_state.get("adapt_dialog_day")
+if open_day_idx is not None:
+    adapt_workout_dialog(open_day_idx, plan["days"][open_day_idx])

@@ -185,6 +185,8 @@ never invent an id): {json.dumps(pool_summary)}
 Rules:
 - Keep the same number of exercises unless the user is short on time (then dropping 1-2 is fine).
 - Every "id" in your response must be one of the ids in the pool above.
+- Never repeat an exercise id — each id may appear at most once, and a replacement must not be
+  an exercise that's already elsewhere in the current session.
 - If the user mentions pain or injury, avoid heavy spinal-loading moves (e.g. deadlift, barbell
   squat, kettlebell swing) and prefer gentler alternatives in the same category.
 - If equipment is missing, swap only the exercises that need it.
@@ -202,10 +204,14 @@ Return strict JSON: {{"exercises": [{{"id": str, "sets": int, "reps": str, "rest
         )
         data = json.loads(resp.text)
         rebuilt = []
+        seen_ids = set()
         for item in data.get("exercises", []):
+            if item["id"] in seen_ids:
+                continue
             built = build_exercise(item["id"], int(item.get("sets", 3)), int(item.get("rest_sec", 60)), item.get("reps"))
             if built:
                 rebuilt.append(built)
+                seen_ids.add(item["id"])
         if not rebuilt:
             raise ValueError("empty adaptation")
         return {"exercises": rebuilt, "note": (data.get("note") or "").strip()}

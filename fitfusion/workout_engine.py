@@ -117,7 +117,7 @@ def adapt_day_offline(day_exercises: list[dict], request: str, equipment: list[s
     want_shorter = any(term in request_l for term in _TIME_TERMS)
 
     notes = []
-    used_ids = set()
+    used_ids = {e["id"] for e in day_exercises}  # never introduce an exercise already in today's session
     new_exercises = []
     for ex in day_exercises:
         source = next((e for e in EXERCISES if e["id"] == ex["id"]), None)
@@ -140,7 +140,6 @@ def adapt_day_offline(day_exercises: list[dict], request: str, equipment: list[s
             else:
                 notes.append(f"Dropped {source['name']} (no safe alternative on hand)")
             continue
-        used_ids.add(ex["id"])
         new_exercises.append(dict(ex))
 
     if want_shorter and new_exercises:
