@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     equipment TEXT DEFAULT '[]',
     workout_days_per_week INTEGER DEFAULT 3,
     session_minutes INTEGER DEFAULT 30,
-    onboarded INTEGER DEFAULT 0
+    onboarded INTEGER DEFAULT 0,
+    language TEXT DEFAULT 'en'
 );
 
 CREATE TABLE IF NOT EXISTS body_analyses (
@@ -102,12 +103,23 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 """
 
 
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Adds columns introduced after a user's DB file was first created.
+    CREATE TABLE IF NOT EXISTS in SCHEMA only affects brand-new databases."""
+    try:
+        conn.execute("ALTER TABLE profiles ADD COLUMN language TEXT DEFAULT 'en'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
+
+
 @st.cache_resource
 def _connection() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     conn.commit()
+    _migrate(conn)
     return conn
 
 

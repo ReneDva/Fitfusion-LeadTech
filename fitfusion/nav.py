@@ -4,7 +4,7 @@ import streamlit as st
 from fitfusion.config import SUPPORTED_LANGUAGES
 from fitfusion.i18n import t, current_language, set_language
 from fitfusion.styles import app_shell_open, sidebar_logo_html
-from fitfusion.db import get_user, get_profile, get_subscription
+from fitfusion.db import get_user, get_profile, get_subscription, update_profile
 
 
 def require_login():
@@ -35,6 +35,8 @@ def render_sidebar():
         chosen_code = lang_codes[labels.index(choice)]
         if chosen_code != current:
             set_language(chosen_code)
+            if user_id:
+                update_profile(user_id, language=chosen_code)
             st.rerun()
 
         st.divider()

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fitfusion.config import APP_NAME, SLOGAN, ACTIVITY_LEVELS, FITNESS_GOALS, DIETARY_PREFERENCES, EXPERIENCE_LEVELS, WORKOUT_LOCATIONS, GOLD, BLUE
-from fitfusion.i18n import t, current_language
+from fitfusion.i18n import t, current_language, set_language
 from fitfusion.styles import app_shell_open, glass_card, stat_card, section_title, gold_glow_logo, LOGO_PATH
 from fitfusion.nav import render_sidebar
 from fitfusion import db, auth, calculations, workout_engine
@@ -104,6 +104,8 @@ def render_auth():
             else:
                 st.session_state["user_id"] = user["id"]
                 profile = db.get_profile(user["id"])
+                if profile and profile["language"]:
+                    set_language(profile["language"])
                 st.session_state["stage"] = "dashboard" if profile and profile["onboarded"] else "profile_setup"
                 st.rerun()
         st.divider()
@@ -116,6 +118,17 @@ def render_auth():
     with tab_signup:
         st.subheader(t("signup_title"))
         st.caption(t("signup_subtitle"))
+
+        for icon, title_key, body_key in ONBOARDING_PAGES:
+            st.markdown(
+                f"<div style='display:flex;align-items:flex-start;gap:10px;margin-bottom:10px'>"
+                f"<span style='font-size:22px'>{icon}</span>"
+                f"<div><b>{t(title_key)}</b><br>"
+                f"<span style='color:#B3B3B3;font-size:13.5px'>{t(body_key)}</span></div></div>",
+                unsafe_allow_html=True,
+            )
+        st.divider()
+
         with st.form("signup_form"):
             name = st.text_input(t("name"))
             email = st.text_input(t("email"))
@@ -132,6 +145,7 @@ def render_auth():
                     st.error(t(error))
                 else:
                     st.session_state["user_id"] = user_id
+                    db.update_profile(user_id, language=current_language())
                     st.session_state["stage"] = "profile_setup"
                     st.success(t("success_saved"))
                     st.rerun()

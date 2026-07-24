@@ -54,6 +54,29 @@ def inject_global_css():
             background: {BG_SECONDARY};
             border-{'left' if is_rtl() else 'right'}: 1px solid rgba(244,178,35,0.15);
         }}
+        [data-testid="stSidebarContent"] {{ overflow-x: hidden; }}
+        [data-testid="collapsedControl"] {{
+            display: flex !important;
+            opacity: 1 !important;
+            z-index: 999999 !important;
+        }}
+
+        @media (max-width: 640px) {{
+            [data-testid="stSidebar"] {{
+                min-width: 82vw !important;
+                max-width: 86vw !important;
+            }}
+            [data-testid="stSidebar"] * {{
+                overflow-wrap: break-word !important;
+                white-space: normal !important;
+            }}
+            [data-testid="stSidebar"] p,
+            [data-testid="stSidebar"] span,
+            [data-testid="stSidebar"] label,
+            [data-testid="stSidebar"] .stButton button {{
+                font-size: 13.5px !important;
+            }}
+        }}
         h1, h2, h3, h4 {{
             font-weight: 800 !important;
             letter-spacing: -0.02em;
