@@ -42,7 +42,7 @@ with st.form("edit_profile_form"):
                             index=DIETARY_PREFERENCES.index(profile["dietary_preference"] or "none"),
                             format_func=lambda d: t(f"diet_{d}"))
     allergies = st.text_input(t("food_allergies"), value=profile["food_allergies"] or "")
-    if st.form_submit_button(t("save"), type="primary", use_container_width=True):
+    if st.form_submit_button(t("save"), type="primary", width='stretch'):
         db.update_profile(user["id"], height_cm=height, weight_kg=weight, activity_level=activity,
                            fitness_goal=goal, dietary_preference=dietary, food_allergies=allergies)
         st.success(t("success_saved"))
@@ -73,7 +73,7 @@ st.caption(t("dark_mode_note"))
 st.toggle(t("dark_mode"), value=True, disabled=True)
 
 st.divider()
-if st.button(f"🚪 {t('logout')}", use_container_width=True):
+if st.button(f"🚪 {t('logout')}", width='stretch'):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()

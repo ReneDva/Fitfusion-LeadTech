@@ -38,7 +38,7 @@ def render_sidebar():
             st.rerun()
 
         st.divider()
-        if user_id and st.button(t("logout"), use_container_width=True):
+        if user_id and st.button(t("logout"), width='stretch'):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()

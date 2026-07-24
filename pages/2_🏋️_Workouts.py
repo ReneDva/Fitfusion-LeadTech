@@ -32,7 +32,7 @@ with st.expander(f"⚙️ {t('equipment')} / {t('workout_location')} / {t('worko
     days = c1.slider(t("workout_days_per_week"), 1, 7, int(profile["workout_days_per_week"] or 3))
     minutes = c2.slider(t("session_minutes"), 15, 90, int(profile["session_minutes"] or 30))
 
-    if st.button(t("regenerate_plan"), type="primary", use_container_width=True):
+    if st.button(t("regenerate_plan"), type="primary", width='stretch'):
         db.update_profile(
             user["id"], workout_location=location, equipment=json.dumps(equipment),
             experience_level=experience, workout_days_per_week=days, session_minutes=minutes,
@@ -57,7 +57,7 @@ def adapt_workout_dialog(day_idx: int, day: dict):
     st.caption(t("adapt_workout_hint"))
     request = st.text_area(t("adapt_workout_placeholder"), key=f"adapt_request_{day_idx}", height=90)
 
-    if st.button(t("adapt_workout_submit"), type="primary", use_container_width=True, disabled=not request.strip()):
+    if st.button(t("adapt_workout_submit"), type="primary", width='stretch', disabled=not request.strip()):
         with st.spinner(t("ai_thinking")):
             st.session_state[result_key] = ai.adapt_workout(day["exercises"], request, current_language(), equipment, location)
         st.rerun()
@@ -70,14 +70,14 @@ def adapt_workout_dialog(day_idx: int, day: dict):
             st.markdown(f"- **{ex['name']}** — {t('sets')}: {ex['sets']} × {ex['reps']}, {t('rest')}: {ex['rest_sec']}s")
 
         c1, c2 = st.columns(2)
-        if c1.button(f"▶️ {t('start_adapted_workout')}", type="primary", use_container_width=True):
+        if c1.button(f"▶️ {t('start_adapted_workout')}", type="primary", width='stretch'):
             st.session_state["trainer_queue"] = adapted["exercises"]
             st.session_state["trainer_idx"] = 0
             st.session_state["trainer_day_idx"] = day_idx
             del st.session_state[result_key]
             st.session_state["adapt_dialog_day"] = None
             st.switch_page("pages/3_🕺_3D_Trainer.py")
-        if c2.button(t("cancel"), use_container_width=True):
+        if c2.button(t("cancel"), width='stretch'):
             del st.session_state[result_key]
             st.session_state["adapt_dialog_day"] = None
             st.rerun()
@@ -110,12 +110,12 @@ for day_idx, (tab, day) in enumerate(zip(day_tabs, plan["days"])):
                 """
             )
         btn_col1, btn_col2 = st.columns(2)
-        if btn_col1.button(f"▶️ {t('start_workout')}", key=f"start_{day['day']}", use_container_width=True, type="primary"):
+        if btn_col1.button(f"▶️ {t('start_workout')}", key=f"start_{day['day']}", width='stretch', type="primary"):
             st.session_state["trainer_queue"] = day["exercises"]
             st.session_state["trainer_idx"] = 0
             st.session_state["trainer_day_idx"] = day_idx
             st.switch_page("pages/3_🕺_3D_Trainer.py")
-        if btn_col2.button(f"💬 {t('adapt_workout')}", key=f"adapt_{day['day']}", use_container_width=True):
+        if btn_col2.button(f"💬 {t('adapt_workout')}", key=f"adapt_{day['day']}", width='stretch'):
             st.session_state["adapt_dialog_day"] = day_idx
             st.rerun()
 

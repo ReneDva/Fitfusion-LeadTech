@@ -20,7 +20,7 @@ with wc1:
 with wc2:
     st.write("")
     st.write("")
-    if st.button(t("log_weight"), use_container_width=True, type="primary"):
+    if st.button(t("log_weight"), width='stretch', type="primary"):
         db.log_weight(user["id"], new_weight)
         st.success(t("success_saved"))
         st.rerun()
@@ -29,7 +29,7 @@ with wc3:
 with wc4:
     st.write("")
     st.write("")
-    if st.button(t("log_sleep"), use_container_width=True, type="primary"):
+    if st.button(t("log_sleep"), width='stretch', type="primary"):
         db.log_sleep(user["id"], new_sleep)
         st.success(t("success_saved"))
         st.rerun()
@@ -39,7 +39,7 @@ analyses = db.all_body_analyses(user["id"])
 
 section_title("⚖️", t("weight_history"))
 if weights:
-    st.plotly_chart(line_trend([w["date"] for w in weights], [w["weight_kg"] for w in weights], t("weight_history")), use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(line_trend([w["date"] for w in weights], [w["weight_kg"] for w in weights], t("weight_history")), width='stretch', config={"displayModeBar": False})
 else:
     empty_state(t("empty_no_data"))
 
@@ -47,13 +47,13 @@ c1, c2 = st.columns(2)
 with c1:
     section_title("📐", t("bmi_trend"))
     if analyses:
-        st.plotly_chart(line_trend([a["created_at"][:10] for a in analyses], [a["bmi"] for a in analyses], t("bmi_trend"), "#4CB7C5"), use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(line_trend([a["created_at"][:10] for a in analyses], [a["bmi"] for a in analyses], t("bmi_trend"), "#4CB7C5"), width='stretch', config={"displayModeBar": False})
     else:
         empty_state(t("empty_no_data"))
 with c2:
     section_title("🧈", t("body_fat_trend"))
     if analyses:
-        st.plotly_chart(line_trend([a["created_at"][:10] for a in analyses], [a["body_fat_estimate"] for a in analyses], t("body_fat_trend"), "#8BC53F"), use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(line_trend([a["created_at"][:10] for a in analyses], [a["body_fat_estimate"] for a in analyses], t("body_fat_trend"), "#8BC53F"), width='stretch', config={"displayModeBar": False})
     else:
         empty_state(t("empty_no_data"))
 
@@ -70,7 +70,7 @@ if workouts or meals:
     all_dates = sorted(set(burned_by_day) | set(consumed_by_day))
     st.plotly_chart(
         dual_line(all_dates, [consumed_by_day[d] for d in all_dates], [burned_by_day[d] for d in all_dates], "Consumed", "Burned"),
-        use_container_width=True, config={"displayModeBar": False},
+        width='stretch', config={"displayModeBar": False},
     )
 else:
     empty_state(t("empty_no_data"))
@@ -85,14 +85,14 @@ if workouts:
         if d >= week_start:
             minutes_by_day[d.strftime("%a")] += w["duration_min"] or 0
     day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    st.plotly_chart(bar_weekly(day_order, [minutes_by_day.get(d, 0) for d in day_order], "Minutes"), use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(bar_weekly(day_order, [minutes_by_day.get(d, 0) for d in day_order], "Minutes"), width='stretch', config={"displayModeBar": False})
 else:
     empty_state(t("empty_no_data"))
 
 section_title("😴", t("sleep_stats"))
 sleep_rows = db.sleep_logs(user["id"])
 if sleep_rows:
-    st.plotly_chart(line_trend([s["date"] for s in sleep_rows], [s["hours"] for s in sleep_rows], t("sleep_stats"), "#4CB7C5"), use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(line_trend([s["date"] for s in sleep_rows], [s["hours"] for s in sleep_rows], t("sleep_stats"), "#4CB7C5"), width='stretch', config={"displayModeBar": False})
 else:
     empty_state(t("empty_no_data"))
 

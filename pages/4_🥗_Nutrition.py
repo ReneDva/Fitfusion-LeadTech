@@ -137,7 +137,7 @@ if pending:
     if pending.get("category"):
         st.caption(f"{t('portion_suggestion')}: {nut.suggested_portion(pending, profile['fitness_goal'] or 'general_health')}")
 
-    if st.button(f"✅ {t('log_meal')}", type="primary", use_container_width=True):
+    if st.button(f"✅ {t('log_meal')}", type="primary", width='stretch'):
         db.log_meal(user["id"], pending)
         st.session_state["pending_meal"] = None
         st.success(t("success_saved"))
@@ -159,13 +159,13 @@ else:
             f"{t('protein')} {round(m['protein'])}{t('g')} · {t('carbs')} {round(m['carbs'])}{t('g')} · {t('fat')} {round(m['fat'])}{t('g')} · "
             f"{t('meal_quality_score')} {m['quality_score']}/100</span>"
         )
-    st.plotly_chart(macro_donut(totals["protein"], totals["carbs"], totals["fat"]), use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(macro_donut(totals["protein"], totals["carbs"], totals["fat"]), width='stretch', config={"displayModeBar": False})
 
 # --- Recipe generator ------------------------------------------------------------
 st.divider()
 section_title("👨‍🍳", t("generate_recipe"))
 recipe_prompt = st.text_input(t("recipe_prompt_label"), placeholder="e.g. chicken, spinach, high protein dinner")
-if st.button(t("generate_recipe"), use_container_width=True) and recipe_prompt:
+if st.button(t("generate_recipe"), width='stretch') and recipe_prompt:
     with st.spinner(t("loading_ai")):
         recipe = ai.generate_recipe(recipe_prompt, profile["dietary_preference"] or "none", current_language())
     glass_card(recipe.replace("\n", "<br>"), glow="gold")

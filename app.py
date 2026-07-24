@@ -72,12 +72,12 @@ def render_onboarding():
     is_last = step == len(ONBOARDING_PAGES) - 1
     c1, c2 = st.columns(2)
     with c1:
-        if not is_last and st.button(t("skip"), use_container_width=True, type="secondary"):
+        if not is_last and st.button(t("skip"), width='stretch', type="secondary"):
             st.session_state["stage"] = "auth"
             st.rerun()
     with c2:
         label = t("start_journey") if is_last else t("next")
-        if st.button(label, use_container_width=True, type="primary"):
+        if st.button(label, width='stretch', type="primary"):
             if is_last:
                 st.session_state["stage"] = "auth"
             else:
@@ -96,7 +96,7 @@ def render_auth():
         with st.form("login_form"):
             identifier = st.text_input(f"{t('email')} / {t('username')}")
             password = st.text_input(t("password"), type="password")
-            submitted = st.form_submit_button(t("login_button"), use_container_width=True, type="primary")
+            submitted = st.form_submit_button(t("login_button"), width='stretch', type="primary")
         if submitted:
             user, error = auth.login(identifier, password)
             if error:
@@ -108,9 +108,9 @@ def render_auth():
                 st.rerun()
         st.divider()
         oc1, oc2 = st.columns(2)
-        if oc1.button(t("continue_google"), use_container_width=True):
+        if oc1.button(t("continue_google"), width='stretch'):
             st.info("Google Sign-In needs a registered OAuth app — not wired up in this local build. Please use email/password.")
-        if oc2.button(t("continue_apple"), use_container_width=True):
+        if oc2.button(t("continue_apple"), width='stretch'):
             st.info("Apple Sign-In needs a registered OAuth app — not wired up in this local build. Please use email/password.")
 
     with tab_signup:
@@ -122,7 +122,7 @@ def render_auth():
             username = st.text_input(t("username"))
             password = st.text_input(t("password"), type="password")
             confirm = st.text_input(t("confirm_password"), type="password")
-            submitted = st.form_submit_button(t("signup_button"), use_container_width=True, type="primary")
+            submitted = st.form_submit_button(t("signup_button"), width='stretch', type="primary")
         if submitted:
             if password != confirm:
                 st.error(t("passwords_dont_match"))
@@ -172,7 +172,7 @@ def render_profile_setup():
         days_per_week = c5.slider(t("workout_days_per_week"), 1, 7, 3)
         session_minutes = c6.slider(t("session_minutes"), 15, 90, 30)
 
-        submitted = st.form_submit_button(t("save_continue"), use_container_width=True, type="primary")
+        submitted = st.form_submit_button(t("save_continue"), width='stretch', type="primary")
 
     if submitted:
         profile_fields = dict(
@@ -216,12 +216,12 @@ def render_dashboard():
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.plotly_chart(progress_ring(consumed, daily_calories, t("calories_goal"), GOLD), use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(progress_ring(consumed, daily_calories, t("calories_goal"), GOLD), width='stretch', config={"displayModeBar": False})
     with c2:
-        st.plotly_chart(progress_ring(water_cups, 8, t("water_intake"), BLUE), use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(progress_ring(water_cups, 8, t("water_intake"), BLUE), width='stretch', config={"displayModeBar": False})
     with c3:
         activity_score = min(100, streak * 15 + (20 if meals_today else 0))
-        st.plotly_chart(progress_ring(activity_score, 100, t("activity_score"), "#8BC53F"), use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(progress_ring(activity_score, 100, t("activity_score"), "#8BC53F"), width='stretch', config={"displayModeBar": False})
 
     b1, b2, b3, b4 = st.columns(4)
     with b1:
@@ -238,12 +238,12 @@ def render_dashboard():
 
     wc1, wc2 = st.columns(2)
     with wc1:
-        if st.button(f"💧 {t('log_water')}", use_container_width=True):
+        if st.button(f"💧 {t('log_water')}", width='stretch'):
             db.log_water(user["id"], 1)
             st.rerun()
     with wc2:
         hours = st.number_input(t("log_sleep"), 0.0, 14.0, 7.0, step=0.5, label_visibility="collapsed")
-        if st.button(f"😴 {t('log_sleep')}", use_container_width=True):
+        if st.button(f"😴 {t('log_sleep')}", width='stretch'):
             db.log_sleep(user["id"], hours)
             st.rerun()
 

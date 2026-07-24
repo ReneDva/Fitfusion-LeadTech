@@ -20,13 +20,18 @@ def cal_per_min_for(exercise_id: str) -> float:
     return entry["cal_per_min"] if entry else 8
 
 
+def is_time_based(exercise_id: str) -> bool:
+    entry = next((e for e in EXERCISES if e["id"] == exercise_id), None)
+    return bool(entry and entry.get("time_based"))
+
+
 def render_demo(exercise_id: str, exercise_name: str):
     section_title("🎬", t("watch_demo"))
     video_url = videos.EXERCISE_VIDEOS.get(exercise_id)
     if video_url:
         st.video(video_url)
     else:
-        st.link_button(f"▶️ {t('watch_demo')}", videos.get_demo_video_url(exercise_id, exercise_name), use_container_width=True)
+        st.link_button(f"▶️ {t('watch_demo')}", videos.get_demo_video_url(exercise_id, exercise_name), width='stretch')
         st.caption(t("demo_not_ready"))
 
 
@@ -35,10 +40,19 @@ def parse_target_reps(reps_str: str):
     return int(numbers[-1]) if numbers else None
 
 
-def render_tracking(cal_per_min: float, key_prefix: str, planned_reps: str = None):
-    """Renders the manual rep/duration tracking UI. Returns (reps, duration_min, accuracy)
-    ready to be logged by the caller."""
-    st.markdown(f"**{t('manual_rep_counter')}**")
+def render_tracking(
+    cal_per_min: float, key_prefix: str, planned_reps: str = None,
+    sets: int = None, rest_sec: int = None, time_based: bool = False,
+    session_calories_so_far: float = 0,
+):
+    """Renders the sets/reps/rest recap + manual rep-or-timer tracking UI, right next to each
+    other. Returns (reps, duration_min, accuracy) ready to be logged by the caller."""
+    if sets is not None:
+        st.caption(f"{t('sets')}: {sets} · {t('reps')}: {planned_reps} · {t('rest')}: {rest_sec}s")
+
+    unit = "s" if time_based else ""
+    step = 5 if time_based else 1
+    st.markdown(f"**{t('manual_timer_counter') if time_based else t('manual_rep_counter')}**")
     reps_key = f"{key_prefix}_manual_reps"
     if reps_key not in st.session_state:
         st.session_state[reps_key] = 0
@@ -46,15 +60,19 @@ def render_tracking(cal_per_min: float, key_prefix: str, planned_reps: str = Non
     target = parse_target_reps(planned_reps)
 
     mc1, mc2, mc3 = st.columns(3)
-    if mc1.button("➖", use_container_width=True, key=f"{key_prefix}_minus"):
-        st.session_state[reps_key] = max(0, st.session_state[reps_key] - 1)
+    if mc1.button("➖", width='stretch', key=f"{key_prefix}_minus"):
+        st.session_state[reps_key] = max(0, st.session_state[reps_key] - step)
     current = st.session_state[reps_key]
-    value_display = f"{current}/{target}" if target else str(current)
+    value_display = f"{current}/{target}{unit}" if target else f"{current}{unit}"
     mc2.markdown(f"<div class='ff-stat-value' style='text-align:center'>{value_display}</div>", unsafe_allow_html=True)
-    if mc3.button("➕", use_container_width=True, key=f"{key_prefix}_plus"):
-        st.session_state[reps_key] += 1
+    if mc3.button("➕", width='stretch', key=f"{key_prefix}_plus"):
+        st.session_state[reps_key] += step
     duration = st.slider(t("duration") + " (min)", 1, 60, 5, key=f"{key_prefix}_duration")
-    stat_card("🔥", t("calories_burned"), f"{round(duration * cal_per_min, 1)} {t('kcal')}")
+
+    calc_calories = round(duration * cal_per_min, 1)
+    running_total = round(session_calories_so_far + calc_calories, 1)
+    calc_detail = t("calorie_calc_detail", duration=duration, rate=cal_per_min, calc=calc_calories, total=running_total)
+    stat_card("🔥", t("calories_burned"), f"{calc_calories} {t('kcal')}", sub=calc_detail)
     return st.session_state[reps_key], duration, None
 
 
@@ -122,7 +140,7 @@ if plan and plan["days"]:
             stat_card("🔥", t("calories_burned"), f"{total_calories} {t('kcal')}")
         cc1, cc2 = st.columns(2)
         with cc1:
-            if st.button(f"🔁 {t('do_another_day')}", use_container_width=True):
+            if st.button(f"🔁 {t('do_another_day')}", width='stretch'):
                 st.session_state["trainer_idx"] = 0
                 st.rerun()
         with cc2:
@@ -132,19 +150,23 @@ if plan and plan["days"]:
         st.progress(idx / len(queue), text=t("exercise_progress", current=idx + 1, total=len(queue)))
 
         section_title("🎯", exercise["name"])
-        st.caption(f"{t('sets')}: {exercise['sets']} · {t('reps')}: {exercise['reps']} · {t('rest')}: {exercise['rest_sec']}s")
         st.write(", ".join(m.replace("_", " ").title() for m in exercise["muscles"]))
 
         render_demo(exercise["id"], exercise["name"])
 
         st.divider()
         cal_per_min = cal_per_min_for(exercise["id"])
-        reps, duration, accuracy = render_tracking(cal_per_min, f"routine_{idx}", exercise.get("reps"))
+        calories_so_far = sum(queue[i].get("est_calories", 0) for i in range(idx))
+        reps, duration, accuracy = render_tracking(
+            cal_per_min, f"routine_{idx}", exercise.get("reps"),
+            sets=exercise.get("sets"), rest_sec=exercise.get("rest_sec"),
+            time_based=is_time_based(exercise["id"]), session_calories_so_far=calories_so_far,
+        )
 
         st.divider()
         bc1, bc2 = st.columns(2)
         with bc1:
-            if st.button(f"⏭ {t('skip_exercise')}", use_container_width=True):
+            if st.button(f"⏭ {t('skip_exercise')}", width='stretch'):
                 queue[idx]["est_calories"] = 0
                 queue[idx]["completed"] = False
                 queue[idx]["reps_done"] = 0
@@ -152,7 +174,7 @@ if plan and plan["days"]:
                 st.session_state["trainer_idx"] = idx + 1
                 st.rerun()
         with bc2:
-            if st.button(f"✅ {t('mark_done_next')}", use_container_width=True, type="primary"):
+            if st.button(f"✅ {t('mark_done_next')}", width='stretch', type="primary"):
                 actual_calories = round(duration * cal_per_min, 1) if reps > 0 else 0
                 db.log_workout(
                     user["id"], exercise["name"], sets=exercise.get("sets", 1), reps=reps,
@@ -179,9 +201,9 @@ else:
     render_demo(exercise["id"], exercise["name"])
 
     st.divider()
-    reps, duration, accuracy = render_tracking(exercise["cal_per_min"], "free")
+    reps, duration, accuracy = render_tracking(exercise["cal_per_min"], "free", time_based=exercise.get("time_based", False))
 
-    if st.button(f"✅ {t('start_workout')}", use_container_width=True, type="primary"):
+    if st.button(f"✅ {t('start_workout')}", width='stretch', type="primary"):
         db.log_workout(
             user["id"], exercise["name"], sets=1, reps=reps,
             duration_min=duration, calories_burned=round(duration * exercise["cal_per_min"], 1), accuracy_score=accuracy,

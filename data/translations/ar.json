@@ -267,6 +267,8 @@
   "avg_sleep_hours": "متوسط النوم (ساعات)",
   "coach_cue": "نصيحة المدرب",
   "manual_rep_counter": "عداد التكرارات اليدوي",
+  "manual_timer_counter": "مؤقت يدوي (ثانية)",
+  "calorie_calc_detail": "{duration} دقيقة × {rate} سعرة/دقيقة = {calc} سعرة · إجمالي الجلسة حتى الآن: {total} سعرة",
   "use_camera_toggle": "استخدم تتبع الكاميرا المباشر (اختياري)",
 
   "analyze": "تحليل",

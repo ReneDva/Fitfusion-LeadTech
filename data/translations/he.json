@@ -267,6 +267,8 @@
   "avg_sleep_hours": "ממוצע שינה (שעות)",
   "coach_cue": "טיפ מהמאמן",
   "manual_rep_counter": "ספירת חזרות ידנית",
+  "manual_timer_counter": "טיימר ידני (שניות)",
+  "calorie_calc_detail": "{duration} דקות × {rate} קק״ל/דקה = {calc} קק״ל · סה״כ בסשן עד כה: {total} קק״ל",
   "use_camera_toggle": "השתמשו במעקב מצלמה חי (אופציונלי)",
 
   "analyze": "נתח",

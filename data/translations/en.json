@@ -267,6 +267,8 @@
   "avg_sleep_hours": "Avg Sleep (hrs)",
   "coach_cue": "Coach Cue",
   "manual_rep_counter": "Manual Rep Counter",
+  "manual_timer_counter": "Manual Timer (sec)",
+  "calorie_calc_detail": "{duration} min × {rate} kcal/min = {calc} kcal · Session total so far: {total} kcal",
   "use_camera_toggle": "Use live camera tracking (optional)",
 
   "analyze": "Analyze",

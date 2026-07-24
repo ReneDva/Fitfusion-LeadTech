@@ -26,13 +26,13 @@ st.info(t("premium_coming_soon"))
 
 c1, c2 = st.columns(2)
 with c1:
-    if st.button(t("free_trial"), use_container_width=True, type="primary"):
+    if st.button(t("free_trial"), width='stretch', type="primary"):
         db.set_subscription(user["id"], "premium")
         st.success(t("success_saved"))
         st.balloons()
         st.rerun()
 with c2:
-    if st.button(t("manage_subscription"), use_container_width=True):
+    if st.button(t("manage_subscription"), width='stretch'):
         db.set_subscription(user["id"], "free")
         st.success(t("success_saved"))
         st.rerun()

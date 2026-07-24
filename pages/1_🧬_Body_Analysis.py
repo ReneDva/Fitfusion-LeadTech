@@ -31,7 +31,7 @@ with st.form("body_analysis_form"):
     c3, c4 = st.columns(2)
     body_fat = c3.number_input(t("body_fat_pct"), 0.0, 60.0, float(profile["body_fat_pct"] or 0.0))
     sleep_hours = c4.number_input(t("avg_sleep_hours"), 0.0, 14.0, 7.0)
-    submitted = st.form_submit_button(t("run_analysis"), use_container_width=True, type="primary")
+    submitted = st.form_submit_button(t("run_analysis"), width='stretch', type="primary")
 
 if submitted:
     with st.spinner(t("analyzing")):
@@ -77,13 +77,13 @@ if result:
     with mc1:
         st.plotly_chart(
             macro_donut(result["protein_g"], result["carbs_g"], result["fat_g"]),
-            use_container_width=True, config={"displayModeBar": False},
+            width='stretch', config={"displayModeBar": False},
         )
         st.caption(f"{t('protein')}: {int(result['protein_g'])}{t('g')} · {t('carbs')}: {int(result['carbs_g'])}{t('g')} · {t('fat')}: {int(result['fat_g'])}{t('g')}")
     with mc2:
         st.plotly_chart(
             progress_ring(result["metabolic_score"], 100, t("metabolic_score"), GREEN),
-            use_container_width=True, config={"displayModeBar": False},
+            width='stretch', config={"displayModeBar": False},
         )
         st.caption(f"💧 {t('water_target')}: {int(result['water_target_ml'])} {t('ml')}")
 
