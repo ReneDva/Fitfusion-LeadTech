@@ -137,6 +137,11 @@
   "target_muscles": "العضلات المستهدفة",
   "start_workout": "ابدأ التمرين",
   "regenerate_plan": "أعد إنشاء الخطة",
+  "adapt_workout": "عدّل مع المدرب الذكي",
+  "adapt_workout_hint": "أخبر المدرب بما تغيّر اليوم — ألم في الظهر، معدات ناقصة، وقت أقل — وسيعدّل هذه الجلسة فقط دون تغيير خطتك المحفوظة.",
+  "adapt_workout_placeholder": "مثال: ظهري يؤلمني اليوم ولا أملك دمبل",
+  "adapt_workout_submit": "عدّل جلستي",
+  "start_adapted_workout": "ابدأ الجلسة المعدّلة",
 
   "trainer_title": "المدرب الشخصي ثلاثي الأبعاد",
   "select_exercise": "اختر التمرين",

@@ -137,6 +137,11 @@
   "target_muscles": "שרירי מטרה",
   "start_workout": "התחילו אימון",
   "regenerate_plan": "צרו תוכנית מחדש",
+  "adapt_workout": "התאימו עם המאמן החכם",
+  "adapt_workout_hint": "ספרו למאמן מה שונה היום — כאב גב, ציוד חסר, פחות זמן — והוא יתאים רק את האימון הזה, בלי לשנות את התוכנית השמורה.",
+  "adapt_workout_placeholder": "לדוגמה: כואב לי הגב התחתון היום ואין לי משקולות יד",
+  "adapt_workout_submit": "התאימו את האימון שלי",
+  "start_adapted_workout": "התחילו אימון מותאם",
 
   "trainer_title": "מאמן אישי תלת-ממד",
   "select_exercise": "בחרו תרגיל",

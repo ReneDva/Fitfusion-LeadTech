@@ -137,6 +137,11 @@
   "target_muscles": "Target Muscles",
   "start_workout": "Start Workout",
   "regenerate_plan": "Regenerate Plan",
+  "adapt_workout": "Adapt with AI Coach",
+  "adapt_workout_hint": "Tell the coach what's different today — back pain, missing equipment, less time — and it'll adjust just this session, not your saved plan.",
+  "adapt_workout_placeholder": "e.g. My lower back hurts today, and I don't have dumbbells",
+  "adapt_workout_submit": "Adapt My Session",
+  "start_adapted_workout": "Start Adapted Session",
 
   "trainer_title": "3D AI Personal Trainer",
   "select_exercise": "Select Exercise",

@@ -8,3 +8,4 @@ fitfusion.db
 *.log
 .streamlit/secrets.toml
 .idea/
+graphify-out/
